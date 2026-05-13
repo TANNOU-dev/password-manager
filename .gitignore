@@ -1,0 +1,39 @@
+# Build outputs
+app_build/build/
+*.deb
+*.apk
+*.aab
+*.zip
+*.tar.gz
+
+# Flutter
+.dart_tool/
+.packages
+pubspec.lock
+build/
+app_build/.dart_tool/
+app_build/.flutter-plugins*
+app_build/build/
+app_build/ios/Pods/
+app_build/ios/.symlinks/
+app_build/macos/Pods/
+app_build/windows/runner/
+
+# Node
+backend/node_modules/
+backend/passwords.db
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+fix/
+android-fix.txt
+README-FIX.md
+*.log
