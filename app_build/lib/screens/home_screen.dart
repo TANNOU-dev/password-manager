@@ -26,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _search = '';
   int _currentTab = 0;
   int _compromisedCount = 0;
+  String? _expandedSite;
 
   @override
   void initState() {
@@ -263,6 +264,16 @@ class _HomeScreenState extends State<HomeScreen> {
       return site.contains(q) || email.contains(q);
     }).toList();
 
+    // Grouper par site
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    for (final p in filtered) {
+      final site = (p['site'] ?? '').toString();
+      grouped.putIfAbsent(site.toLowerCase(), () => []);
+      grouped[site.toLowerCase()]!.add(p);
+    }
+    final sortedSites = grouped.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
     return Scaffold(
       backgroundColor: PassVaultApp.deepNavy,
       appBar: AppBar(
@@ -347,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               ),
               onChanged: (v) => setState(() => _search = v),
             ),
@@ -372,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        '$_compromisedCount mot(s) de passe compromis ou faible(s)',
+                        '$_compromisedCount mot(s) faible(s) ou compromis',
                         style: const TextStyle(
                           color: Color(0xFFFFDAD6),
                           fontSize: 13,
@@ -396,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-          // ── Liste des mots de passe ──
+          // ── Liste groupée par site ──
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
@@ -434,105 +445,187 @@ class _HomeScreenState extends State<HomeScreen> {
                         onRefresh: _loadPasswords,
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(vertical: 4),
-                          itemCount: filtered.length,
+                          itemCount: sortedSites.length,
                           itemBuilder: (ctx, i) {
-                            final p = filtered[i];
-                            final site = p['site']?.toString() ?? 'Site inconnu';
-                            final email = p['email']?.toString() ?? '';
-                            final id = p['id'] as int;
+                            final entry = sortedSites[i];
+                            final siteName = entry.value.first['site']?.toString() ?? 'Site';
+                            final entries = entry.value;
+                            final isExpanded = _expandedSite == entry.key;
 
-                            return Card(
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () => _showPassword(p),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Row(
-                                    children: [
-                                      // Icône site
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: _siteColor(site)
-                                              .withValues(alpha: 0.15),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Icon(
-                                          _siteIcon(site),
-                                          color: _siteColor(site),
-                                          size: 22,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-
-                                      // Infos
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: PassVaultApp.brandSlate,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: PassVaultApp.brandBorder),
+                                ),
+                                child: Column(
+                                  children: [
+                                    // En-tête du groupe
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(12),
+                                      onTap: () {
+                                        setState(() {
+                                          _expandedSite = isExpanded ? null : entry.key;
+                                        });
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(14),
+                                        child: Row(
                                           children: [
-                                            Text(
-                                              site,
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.white,
+                                            // Icône
+                                            Container(
+                                              width: 48,
+                                              height: 48,
+                                              decoration: BoxDecoration(
+                                                color: _siteColor(siteName).withValues(alpha: 0.15),
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              child: Icon(
+                                                _siteIcon(siteName),
+                                                color: _siteColor(siteName),
+                                                size: 24,
                                               ),
                                             ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              email,
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: PassVaultApp.brandGrey
-                                                    .withValues(alpha: 0.8),
+                                            const SizedBox(width: 14),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    siteName,
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    '${entries.length} mot(s) de passe',
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      color: PassVaultApp.brandGrey,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
+                                            ),
+                                            Icon(
+                                              isExpanded
+                                                  ? Icons.expand_less
+                                                  : Icons.expand_more,
+                                              color: PassVaultApp.brandGrey,
+                                              size: 24,
                                             ),
                                           ],
                                         ),
                                       ),
+                                    ),
 
-                                      // Actions
-                                      IconButton(
-                                        icon: const Icon(Icons.copy,
-                                            size: 18,
-                                            color: PassVaultApp.brandGrey),
-                                        onPressed: () {
-                                          Clipboard.setData(ClipboardData(
-                                              text: p['password'] ?? ''));
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content:
-                                                  Text('Mot de passe copié pour $site'),
-                                              duration:
-                                                  const Duration(seconds: 2),
+                                    // Sous-entrées
+                                    if (isExpanded)
+                                      ...entries.map((p) {
+                                        final email = p['email']?.toString() ?? '';
+                                        final id = p['id'] as int;
+
+                                        return Container(
+                                          padding: const EdgeInsets.only(
+                                            left: 76,
+                                            right: 8,
+                                            bottom: 12,
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: PassVaultApp.brandNavy,
+                                              borderRadius: BorderRadius.circular(8),
                                             ),
-                                          );
-                                        },
-                                        tooltip: 'Copier',
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.edit_outlined,
-                                            size: 18,
-                                            color: PassVaultApp.brandGrey),
-                                        onPressed: () => _editPassword(p),
-                                        tooltip: 'Modifier',
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(
-                                            Icons.delete_outline,
-                                            size: 18,
-                                            color: Colors.red),
-                                        onPressed: () => _deletePassword(id),
-                                        tooltip: 'Supprimer',
-                                      ),
-                                    ],
-                                  ),
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        email,
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight: FontWeight.w500,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        '••••••••••••',
+                                                        style: TextStyle(
+                                                          fontSize: 13,
+                                                          fontFamily: 'JetBrains Mono',
+                                                          color: PassVaultApp.brandGrey.withValues(alpha: 0.7),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(Icons.copy,
+                                                      size: 20,
+                                                      color: PassVaultApp.brandGrey),
+                                                  onPressed: () {
+                                                    Clipboard.setData(ClipboardData(
+                                                        text: p['password'] ?? ''));
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text('Copié !'),
+                                                        duration: Duration(seconds: 2),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                                PopupMenuButton<String>(
+                                                  icon: const Icon(Icons.more_vert,
+                                                      size: 20,
+                                                      color: PassVaultApp.brandGrey),
+                                                  color: PassVaultApp.brandSlate,
+                                                  onSelected: (v) {
+                                                    if (v == 'edit') _editPassword(p);
+                                                    if (v == 'delete') _deletePassword(id);
+                                                    if (v == 'show') _showPassword(p);
+                                                  },
+                                                  itemBuilder: (_) => [
+                                                    const PopupMenuItem(
+                                                      value: 'show',
+                                                      child: ListTile(
+                                                        leading: Icon(Icons.visibility),
+                                                        title: Text('Voir'),
+                                                        contentPadding: EdgeInsets.zero,
+                                                      ),
+                                                    ),
+                                                    const PopupMenuItem(
+                                                      value: 'edit',
+                                                      child: ListTile(
+                                                        leading: Icon(Icons.edit),
+                                                        title: Text('Modifier'),
+                                                        contentPadding: EdgeInsets.zero,
+                                                      ),
+                                                    ),
+                                                    const PopupMenuItem(
+                                                      value: 'delete',
+                                                      child: ListTile(
+                                                        leading: Icon(Icons.delete, color: Colors.red),
+                                                        title: Text('Supprimer', style: TextStyle(color: Colors.red)),
+                                                        contentPadding: EdgeInsets.zero,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                  ],
                                 ),
                               ),
                             );
@@ -576,19 +669,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 _bottomNavItem(
                   icon: Icons.lock_outline,
                   activeIcon: Icons.lock,
-                  label: 'Vault',
+                  label: 'Coffre',
                   index: 0,
                 ),
                 _bottomNavItem(
                   icon: Icons.auto_fix_high_outlined,
                   activeIcon: Icons.auto_fix_high,
-                  label: 'Generator',
+                  label: 'Générateur',
                   index: 1,
                 ),
                 _bottomNavItem(
                   icon: Icons.settings_outlined,
                   activeIcon: Icons.settings,
-                  label: 'Settings',
+                  label: 'Paramètres',
                   index: 2,
                 ),
               ],
