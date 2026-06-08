@@ -51,6 +51,9 @@ dependencies:
   # Accès aux dossiers de l'appareil
   path_provider: ^2.1.0
 
+  # Polices Google (Inter + JetBrains Mono)
+  google_fonts: ^6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
