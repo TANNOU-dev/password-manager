@@ -348,45 +348,42 @@ class _SetupScreenState extends State<SetupScreen>
             ),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: PassVaultApp.brandSlate,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: PassVaultApp.brandBorder),
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  obscureText: obscure,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    border: InputBorder.none,
-                    fillColor: Colors.transparent,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                  ),
-                  onChanged: onChanged,
-                ),
-              ),
-              if (showVisibility)
-                IconButton(
-                  icon: Icon(
-                    obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    color: PassVaultApp.brandGrey,
-                    size: 20,
-                  ),
-                  onPressed: onToggle,
-                ),
-            ],
+          decoration: InputDecoration(
+            hintText: hint,
+            prefixIcon: const Icon(
+              Icons.lock_outline,
+              color: PassVaultApp.brandGrey,
+              size: 20,
+            ),
+            suffixIcon: showVisibility
+                ? IconButton(
+                    icon: Icon(
+                      obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      color: PassVaultApp.brandGrey,
+                      size: 20,
+                    ),
+                    onPressed: onToggle,
+                  )
+                : null,
+            filled: true,
+            fillColor: PassVaultApp.brandSlate,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: PassVaultApp.brandBorder),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 16),
           ),
+          onChanged: onChanged,
         ),
       ],
     );

@@ -280,60 +280,49 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                               // Input
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: _focusNode.hasFocus
-                                        ? PassVaultApp.electricBlue
-                                        : PassVaultApp.brandBorder,
-                                    width: _focusNode.hasFocus ? 2 : 1,
+                              TextField(
+                                controller: _passwordController,
+                                focusNode: _focusNode,
+                                obscureText: _obscure,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: '••••••••••••',
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline,
+                                    color: PassVaultApp.brandGrey,
+                                    size: 20,
                                   ),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscure
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                      color: PassVaultApp.brandGrey,
+                                      size: 20,
+                                    ),
+                                    onPressed: () =>
+                                        setState(() => _obscure = !_obscure),
+                                  ),
+                                  filled: true,
+                                  fillColor: PassVaultApp.brandSlate,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(
+                                      color: _focusNode.hasFocus
+                                          ? PassVaultApp.electricBlue
+                                          : PassVaultApp.brandBorder,
+                                      width: _focusNode.hasFocus ? 2 : 1,
+                                    ),
+                                  ),
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 16),
                                 ),
-                                child: Row(
-                                  children: [
-                                    const Padding(
-                                      padding: EdgeInsets.only(left: 16),
-                                      child: Icon(
-                                        Icons.lock_outline,
-                                        color: PassVaultApp.brandGrey,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _passwordController,
-                                        focusNode: _focusNode,
-                                        obscureText: _obscure,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                        ),
-                                        decoration: InputDecoration(
-                                          hintText: '••••••••••••',
-                                          border: InputBorder.none,
-                                          fillColor: Colors.transparent,
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                  horizontal: 12, vertical: 14),
-                                        ),
-                                        onSubmitted: (_) => _login(),
-                                        onChanged: (_) => setState(() {}),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: Icon(
-                                        _obscure
-                                            ? Icons.visibility_outlined
-                                            : Icons.visibility_off_outlined,
-                                        color: PassVaultApp.brandGrey,
-                                        size: 20,
-                                      ),
-                                      onPressed: () =>
-                                          setState(() => _obscure = !_obscure),
-                                    ),
-                                  ],
-                                ),
+                                onSubmitted: (_) => _login(),
+                                onChanged: (_) => setState(() {}),
                               ),
                             ],
                           ),

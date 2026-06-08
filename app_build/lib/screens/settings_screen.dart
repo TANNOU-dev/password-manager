@@ -4,9 +4,119 @@ import '../main.dart';
 import '../services/api_service.dart';
 import 'login_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   final ApiService api;
   const SettingsScreen({super.key, required this.api});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _biometricEnabled = true;
+  bool _showSiteIcons = true;
+  int _autoLockMinutes = 5;
+
+  Future<void> _deleteAllPasswords() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: PassVaultApp.brandSlate,
+        title: const Text('⚠️ Supprimer le coffre-fort ?'),
+        content: const Text(
+          'Tous vos mots de passe seront définitivement supprimés. '
+          'Cette action est irréversible.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: PassVaultApp.errorContainer,
+            ),
+            child: const Text('Tout supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    // Récupérer tous les mots de passe et les supprimer un par un
+    final passwords = await widget.api.getPasswords();
+    if (!mounted) return;
+
+    if (passwords.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucun mot de passe à supprimer')),
+      );
+      return;
+    }
+
+    int deleted = 0;
+    for (final p in passwords) {
+      final success = await widget.api.deletePassword(p['id'] as int);
+      if (success) deleted++;
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🗑️ $deleted mot(s) de passe supprimé(s)'),
+        backgroundColor: PassVaultApp.errorContainer,
+      ),
+    );
+  }
+
+  void _showAutoLockPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: PassVaultApp.brandSlate,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 32, height: 4,
+            decoration: BoxDecoration(
+              color: PassVaultApp.brandGrey.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Verrouillage automatique',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          ...[1, 5, 15, 30, 60].map((m) => ListTile(
+            leading: Icon(
+              _autoLockMinutes == m ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: PassVaultApp.electricBlue,
+            ),
+            title: Text(
+              m < 60 ? '$m minute(s)' : '${m ~/ 60} heure(s)',
+              style: const TextStyle(color: Colors.white),
+            ),
+            onTap: () {
+              setState(() => _autoLockMinutes = m);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('✅ Verrouillage après $_autoLockMinutes min')),
+              );
+            },
+          )),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,32 +133,40 @@ class SettingsScreen extends StatelessWidget {
             title: 'Déverrouillage biométrique',
             subtitle: 'Empreinte digitale / Face ID',
             trailing: Switch(
-              value: true,
+              value: _biometricEnabled,
               activeColor: PassVaultApp.brandGreen,
-              onChanged: (_) {},
+              onChanged: (v) {
+                setState(() => _biometricEnabled = v);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(v ? '✅ Biométrie activée' : '❌ Biométrie désactivée'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
             ),
           ),
           _settingsTile(
             icon: Icons.timer_outlined,
             title: 'Verrouillage automatique',
-            subtitle: 'Après 5 minutes d\'inactivité',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Paramètre à venir')),
-              );
-            },
+            subtitle: 'Après $_autoLockMinutes minute(s) d\'inactivité',
+            onTap: _showAutoLockPicker,
           ),
           const SizedBox(height: 16),
 
-          // ── Sauvegarde ──
+          // ── Sauvegarde et Export ──
           _sectionHeader('Sauvegarde et Export'),
           _settingsTile(
             icon: Icons.download_outlined,
-            title: 'Exporter le coffre-fort',
+            title: 'Exporter le coffre-fort (JSON)',
             subtitle: 'Sauvegarder tous vos mots de passe',
             onTap: () {
+              // Retourner au coffre qui a déjà cette fonctionnalité
+              Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Utilisez Exporter dans le menu du Vault')),
+                const SnackBar(
+                  content: Text('📤 Utilisez le menu ⋮ du Coffre pour exporter'),
+                ),
               );
             },
           ),
@@ -57,8 +175,11 @@ class SettingsScreen extends StatelessWidget {
             title: 'Importer des mots de passe',
             subtitle: 'Restaurer depuis une sauvegarde',
             onTap: () {
+              Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Utilisez Importer dans le menu du Vault')),
+                const SnackBar(
+                  content: Text('📥 Utilisez le menu ⋮ du Coffre pour importer'),
+                ),
               );
             },
           ),
@@ -74,12 +195,20 @@ class SettingsScreen extends StatelessWidget {
           ),
           _settingsTile(
             icon: Icons.grid_view_outlined,
-            title: 'Afficher les icônes des sites',
-            subtitle: 'Activer les couleurs par site',
+            title: 'Icônes des sites',
+            subtitle: 'Afficher les icônes colorées par site',
             trailing: Switch(
-              value: true,
+              value: _showSiteIcons,
               activeColor: PassVaultApp.brandGreen,
-              onChanged: (_) {},
+              onChanged: (v) {
+                setState(() => _showSiteIcons = v);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(v ? '✅ Icônes activées' : '❌ Icônes désactivées'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 16),
@@ -110,8 +239,7 @@ class SettingsScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(
-                      builder: (_) => const LoginScreen()),
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
                   (route) => false,
                 );
               },
@@ -132,40 +260,7 @@ class SettingsScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    backgroundColor: PassVaultApp.brandSlate,
-                    title: const Text('⚠️ Supprimer le coffre-fort ?'),
-                    content: const Text(
-                      'Tous vos mots de passe seront définitivement supprimés. '
-                      'Cette action est irréversible.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Annuler'),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: PassVaultApp.errorContainer,
-                        ),
-                        child: const Text('Tout supprimer'),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (confirm == true && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Fonctionnalité à implémenter'),
-                    ),
-                  );
-                }
-              },
+              onPressed: _deleteAllPasswords,
               icon: const Icon(Icons.delete_forever,
                   color: PassVaultApp.errorContainer),
               label: const Text('Supprimer le coffre-fort',

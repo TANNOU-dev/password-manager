@@ -157,14 +157,17 @@ class _GeneratorScreenState extends State<GeneratorScreen> {
                         label: 'Nouveau',
                         onTap: _refresh,
                       ),
-                      // QR / Share placeholder
+                      // Partage fonctionnel
                       _actionButton(
                         icon: Icons.share_outlined,
                         label: 'Partager',
-                        onTap: () {
+                        onTap: () async {
+                          final pwd = _passwordController.text;
+                          await Clipboard.setData(ClipboardData(text: pwd));
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Partage à venir'),
+                              content: Text('📋 Mot de passe copié ! Collez-le où vous voulez'),
+                              duration: Duration(seconds: 3),
                             ),
                           );
                         },
