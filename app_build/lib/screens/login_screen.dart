@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
 import 'home_screen.dart';
 import 'setup_screen.dart';
@@ -67,7 +68,8 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final bioEnabled = prefs.getBool('biometric_enabled') ?? false;
-      final savedPassword = prefs.getString('biometric_password');
+      const storage = FlutterSecureStorage();
+      final savedPassword = await storage.read(key: 'biometric_password');
 
       if (bioEnabled && savedPassword != null && savedPassword.isNotEmpty) {
         // 1. Demander l'empreinte
@@ -132,12 +134,14 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success) {
       final prefs = await SharedPreferences.getInstance();
       final alreadyEnabled = prefs.getBool('biometric_enabled') ?? false;
-      final savedPassword = prefs.getString('biometric_password');
+      const storage = FlutterSecureStorage();
+      final savedPassword = await storage.read(key: 'biometric_password');
 
       // Sauvegarder le mot de passe pour l'empreinte
       // (remplace l'ancien mot de passe si changé)
       if (_api.token != null) {
-        await prefs.setString('biometric_password', _passwordController.text);
+        const storage = FlutterSecureStorage();
+        await storage.write(key: 'biometric_password', value: _passwordController.text);
       }
 
       // Proposer d'activer la biométrie (si pas déjà activé)
@@ -186,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             if (enrolled && mounted) {
               await prefs.setBool('biometric_enabled', true);
-              await prefs.setString('biometric_password', _passwordController.text);
+              await storage.write(key: 'biometric_password', value: _passwordController.text);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('✅ Empreinte enregistrée !'),

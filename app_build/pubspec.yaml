@@ -40,6 +40,7 @@ dependencies:
 
   # Stockage local des préférences (token biométrique)
   shared_preferences: ^2.3.0
+  flutter_secure_storage: ^9.2.2
 
   # Sélecteur de fichiers (import CSV/JSON)
   file_picker: ^8.0.0
