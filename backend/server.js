@@ -61,7 +61,7 @@ app.post('/api/passwords', (req, res) => {
 
 // Récupérer tous les mots de passe (déchiffrés)
 app.get('/api/passwords', (req, res) => {
-  const { token } = req.query;
+  const token = req.headers["authorization"]?.replace("Bearer ", "");
   if (!token) return res.status(400).json({ error: 'Token requis' });
 
   const masterKey = db.getKey(token);
@@ -105,7 +105,7 @@ app.put('/api/passwords/:id', (req, res) => {
 
 // Exporter tous les mots de passe en JSON
 app.get('/api/export', (req, res) => {
-  const { token } = req.query;
+  const token = req.headers["authorization"]?.replace("Bearer ", "");
   if (!token) return res.status(400).json({ error: 'Token requis' });
 
   const masterKey = db.getKey(token);
@@ -136,7 +136,7 @@ app.post('/api/import', (req, res) => {
 
 // Exporter en CSV
 app.get('/api/export/csv', (req, res) => {
-  const { token } = req.query;
+  const token = req.headers["authorization"]?.replace("Bearer ", "");
   if (!token) return res.status(400).json({ error: 'Token requis' });
 
   const masterKey = db.getKey(token);

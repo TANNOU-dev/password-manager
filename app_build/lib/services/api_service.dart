@@ -56,8 +56,9 @@ class ApiService {
     try {
       final client = HttpClient();
       final request = await client.getUrl(
-        Uri.parse('$BASE_URL/api/passwords?token=$_token'),
+        Uri.parse('$BASE_URL/api/passwords'),
       );
+      request.headers.add('Authorization', 'Bearer $_token');
       final response = await request.close();
       if (response.statusCode == 200) {
         final body = await response.transform(utf8.decoder).join();
@@ -168,8 +169,9 @@ class ApiService {
     try {
       final client = HttpClient();
       final request = await client.getUrl(
-        Uri.parse('$BASE_URL/api/export?token=$_token'),
+        Uri.parse('$BASE_URL/api/export'),
       );
+      request.headers.add('Authorization', 'Bearer $_token');
       final response = await request.close();
       if (response.statusCode == 200) {
         final body = await response.transform(utf8.decoder).join();
@@ -188,8 +190,9 @@ class ApiService {
     try {
       final client = HttpClient();
       final request = await client.getUrl(
-        Uri.parse('$BASE_URL/api/export/csv?token=$_token'),
+        Uri.parse('$BASE_URL/api/export/csv'),
       );
+      request.headers.add('Authorization', 'Bearer $_token');
       final response = await request.close();
       if (response.statusCode == 200) {
         final body = await response.transform(utf8.decoder).join();
