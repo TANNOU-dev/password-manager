@@ -51,10 +51,6 @@ class _LoginScreenState extends State<LoginScreen>
         if (canBio && mounted) {
           final authenticated = await _localAuth.authenticate(
             localizedReason: 'Déverrouillez PassVault',
-            options: const AuthenticationOptions(
-              stickyAuth: true,
-              biometricOnly: true,
-            ),
           );
 
           if (authenticated && mounted) {
@@ -109,10 +105,6 @@ class _LoginScreenState extends State<LoginScreen>
           final enrolled = await _localAuth.authenticate(
             localizedReason:
                 'Enregistrez votre empreinte pour le déverrouillage rapide',
-            options: const AuthenticationOptions(
-              stickyAuth: true,
-              biometricOnly: true,
-            ),
           );
           if (enrolled && mounted) {
             final prefs = await SharedPreferences.getInstance();
