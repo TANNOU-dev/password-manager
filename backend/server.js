@@ -7,7 +7,14 @@ const app = express();
 const PORT = 3000;
 const db = new PasswordDB();
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://100.77.208.122:3000',
+    'http://localhost:3000',
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 
 // ========================================
