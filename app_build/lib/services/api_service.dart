@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 // 🇨🇮 Change ça avec l'IP Tailscale de ton VPS
 // 🇨🇮 IP publique du VPS (accessible partout, pas besoin de Tailscale)
 // Pour utiliser Tailscale : remplacer par http://100.77.208.122:3000
-const String BASE_URL = 'http://100.77.208.122:3000';
+const String BASE_URL = 'http://localhost:3000';
 
 class ApiService {
   String? _token;
