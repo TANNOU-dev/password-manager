@@ -377,6 +377,47 @@ void main() {
       expect(login(out.items.single).password, 'hunter2');
     });
 
+    test('déballe les noms au format Markdown', () {
+      // Cas rencontré dans un vrai coffre v1 : le nom du site avait été collé
+      // depuis un document, sous forme de lien Markdown. Sans déballage, l'URI
+      // enregistrée était la chaîne entière et l'autofill ne correspondait
+      // jamais.
+      const source = '''
+      {"version":1,"entries":[
+        {"site":"[www.paypal.com](https://www.paypal.com)","email":"a@b.c","password":"pw"},
+        {"site":"[](https://www.netflix.com)","email":"x","password":"pw"},
+        {"site":"[Ma banque](https://mabanque.ci/login)","email":"y","password":"pw"}
+      ]}
+      ''';
+      final out = parseImport(source);
+      expect(out.count, 3);
+
+      final paypal = out.items.first;
+      expect(paypal.data.name, 'www.paypal.com');
+      expect(login(paypal).uris.single.uri, 'https://www.paypal.com');
+      expect(login(paypal).uris.single.host, 'paypal.com');
+
+      // Libellé vide : on retombe sur l'URL.
+      final netflix = out.items[1];
+      expect(netflix.data.name, 'https://www.netflix.com');
+      expect(login(netflix).uris.single.uri, 'https://www.netflix.com');
+
+      // Libellé lisible : on le garde, et l'URI conserve son chemin.
+      final banque = out.items[2];
+      expect(banque.data.name, 'Ma banque');
+      expect(login(banque).uris.single.uri, 'https://mabanque.ci/login');
+    });
+
+    test('ne touche pas aux noms qui ne sont pas des liens', () {
+      const source = '''
+      [{"site":"Ma banque [perso]","email":"a","password":"p"},
+       {"site":"github.com","email":"b","password":"p"}]
+      ''';
+      final out = parseImport(source);
+      expect(out.items[0].data.name, 'Ma banque [perso]');
+      expect(out.items[1].data.name, 'github.com');
+    });
+
     test('signale les entrées inexploitables', () {
       const source = '[{"site":"ok.com","email":"a","password":"p"},'
           '{"site":"","email":"","password":""},"pas un objet"]';

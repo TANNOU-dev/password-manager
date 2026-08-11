@@ -159,9 +159,15 @@ CipherItem? v1EntryToItem(Map<String, dynamic> entry) {
 
   if (site.isEmpty && username.isEmpty && password.isEmpty) return null;
 
+  // Les coffres v1 réels contiennent des noms au format Markdown, hérités d'un
+  // copier-coller depuis un document. On les réduit à leur libellé.
+  final displayName = cleanItemName(site);
+
   return CipherItem(
     data: LoginData(
-      name: site.isNotEmpty ? site : (username.isNotEmpty ? username : 'Sans nom'),
+      name: displayName.isNotEmpty
+          ? displayName
+          : (username.isNotEmpty ? username : 'Sans nom'),
       username: username,
       password: password,
       notes: note,

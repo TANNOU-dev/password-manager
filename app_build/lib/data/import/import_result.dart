@@ -82,13 +82,48 @@ ParsedImport requireSomething(
   );
 }
 
+/// Lien Markdown `[libellé](url)`.
+///
+/// Des coffres réels en contiennent : un `[www.paypal.com](https://www.paypal.com)`
+/// arrive quand la source a été copiée depuis un document. Sans ce traitement, la
+/// chaîne entière finit comme adresse — donc une URI que le remplissage
+/// automatique ne fera jamais correspondre.
+final _markdownLink = RegExp(r'^\s*\[([^\]]*)\]\(\s*([^)\s]+)\s*\)\s*$');
+
+/// Extrait `(libellé, url)` d'un lien Markdown, ou `null` si ce n'en est pas un.
+({String label, String url})? unwrapMarkdownLink(String value) {
+  final match = _markdownLink.firstMatch(value);
+  if (match == null) return null;
+  final label = match.group(1)!.trim();
+  final url = match.group(2)!.trim();
+  if (url.isEmpty) return null;
+  return (label: label, url: url);
+}
+
+/// Nettoie un nom d'élément venu d'une source approximative.
+///
+/// Un lien Markdown est réduit à son libellé, ou à son URL si le libellé est
+/// vide. Le reste est renvoyé tel quel : on ne réécrit pas ce que l'utilisateur
+/// a saisi volontairement.
+String cleanItemName(String value) {
+  final link = unwrapMarkdownLink(value);
+  if (link == null) return value.trim();
+  return link.label.isNotEmpty ? link.label : link.url;
+}
+
 /// Promeut une chaîne en URI si elle ressemble à une adresse. « Ma banque » n'en
 /// est pas une ; « github.com » oui.
 List<LoginUri> urisFrom(Iterable<String> candidates) {
   final out = <LoginUri>[];
   for (final raw in candidates) {
-    final value = raw.trim();
+    var value = raw.trim();
     if (value.isEmpty) continue;
+
+    // Déballe d'abord : sinon le `://` du lien Markdown ferait passer toute la
+    // chaîne pour une URL.
+    final link = unwrapMarkdownLink(value);
+    if (link != null) value = link.url;
+
     if (value.contains('://')) {
       out.add(LoginUri(uri: value));
       continue;
