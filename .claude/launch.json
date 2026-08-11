@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "passvault-app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "mkdir -p /tmp/passvault-demo && cd /home/tannou/DATA/Projets/password-manager/backend && PASSVAULT_DB=/tmp/passvault-demo/vault.db PORT=3100 PASSVAULT_CORS_ORIGINS=http://localhost:8124,http://127.0.0.1:8124 node server.js & sleep 1 && cd /home/tannou/DATA/Projets/password-manager/app_build && exec flutter run -t lib/main.dart -d web-server --web-port=8124 --web-hostname=127.0.0.1 --dart-define=PASSVAULT_API_URL=http://127.0.0.1:3100"
+      ],
+      "port": 8124
+    },
+    {
+      "name": "design-gallery",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd /home/tannou/DATA/Projets/password-manager/app_build && exec flutter run -t lib/dev/design_gallery.dart -d web-server --web-port=8123 --web-hostname=127.0.0.1"
+      ],
+      "port": 8123
+    }
+  ]
+}

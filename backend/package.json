@@ -1,19 +1,24 @@
 {
-  "name": "backend",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "passvault-backend",
+  "version": "2.0.0",
+  "description": "Entrepôt zero-knowledge pour PassVault : stocke des blobs chiffrés qu'il ne peut pas lire",
+  "main": "server.js",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "test": "node --test 'test/**/*.test.js'",
+    "export-v1": "node tools/export-v1.js"
   },
-  "keywords": [],
-  "author": "",
+  "engines": {
+    "node": ">=20"
+  },
   "license": "ISC",
   "dependencies": {
     "better-sqlite3": "^12.9.0",
     "cors": "^2.8.6",
-    "crypto-js": "^4.2.0",
-    "express": "^5.2.1",
-    "uuid": "^14.0.0"
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "crypto-js": "^4.2.0"
   }
 }
