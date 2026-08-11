@@ -20,11 +20,19 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.tannou.password_manager"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+
+        // Android 10, et non le défaut 24 de Flutter.
+        //
+        // Imposé par flutter_autofill_service, qui déclare minSdkVersion 29 :
+        // laisser 24 fait échouer la fusion des manifestes au build. Conséquence
+        // assumée — les appareils sous Android 7, 8 et 9 ne peuvent plus
+        // installer l'app.
+        //
+        // Pour revenir en arrière : retirer flutter_autofill_service, remettre
+        // `flutter.minSdkVersion`, et supprimer lib/features/autofill/.
+        minSdk = 29
+
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

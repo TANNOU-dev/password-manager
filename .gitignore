@@ -22,6 +22,15 @@ app_build/windows/runner/
 # Node
 backend/node_modules/
 backend/passwords.db
+# Coffre v2 + journaux WAL de SQLite
+backend/vault.db
+backend/vault.db-wal
+backend/vault.db-shm
+
+# Exports de coffre : contenu EN CLAIR, ne doit jamais entrer dans un dépôt
+coffre-v1.json
+*-export.json
+passvault_export.*
 
 # IDE
 .idea/
