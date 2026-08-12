@@ -43,6 +43,14 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // Sans ces règles, R8 échoue sur les références non résolues que
+            // kotlin-logging et tinylog traînent depuis flutter_autofill_service.
+            // Voir proguard-rules.pro pour le détail.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

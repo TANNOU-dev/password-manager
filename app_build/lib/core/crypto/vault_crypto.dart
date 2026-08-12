@@ -33,6 +33,25 @@ import 'kdf_params.dart';
 const String _wrapInfo = 'passvault:wrap:v1';
 const String _authInfo = 'passvault:auth:v1';
 
+/// Sel de l'étape d'extraction HKDF : 32 octets nuls, soit la longueur du
+/// condensé SHA-256.
+///
+/// C'est ce que prescrit la RFC 5869 quand aucun sel n'est fourni. On l'écrit
+/// explicitement parce que la valeur par défaut du paquet est une liste *vide*,
+/// qui devient une clé HMAC vide — refusée par l'implémentation native
+/// d'Android. Voir le commentaire dans `_expand`.
+///
+/// Le sel propre au compte est déjà incorporé en amont, par Argon2id. Cette
+/// étape n'a donc pas besoin d'en apporter un second : elle sépare seulement les
+/// domaines via `info`.
+@visibleForTesting
+const List<int> kHkdfSalt = _hkdfSalt;
+
+const List<int> _hkdfSalt = <int>[
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+];
+
 /// Argon2id n'est pas accéléré nativement : sur mobile la dérivation prend
 /// facilement une à trois secondes. On la sort donc du thread d'interface.
 /// `compute` retombe sur une exécution en ligne sur le web, où les isolats
@@ -185,6 +204,17 @@ class VaultCrypto {
     final hkdf = Hkdf(hmac: Hmac.sha256(), outputLength: 32);
     final derived = await hkdf.deriveKey(
       secretKey: masterKey,
+      // Sel explicite, et non la valeur par défaut.
+      //
+      // Dans HKDF, le sel sert de clé HMAC. Sans lui, le paquet passe une clé
+      // vide, que le HMAC pur-Dart accepte mais que `javax.crypto.SecretKeySpec`
+      // d'Android refuse : « IllegalArgumentException: Empty key ». Le bug ne se
+      // manifestait donc que sur appareil, jamais dans les tests ni sur le web,
+      // qui n'utilisent pas l'implémentation native.
+      //
+      // La RFC 5869 prescrit exactement ça en l'absence de sel : HashLen octets
+      // nuls. On l'écrit explicitement au lieu de dépendre du défaut.
+      nonce: _hkdfSalt,
       info: utf8.encode(info),
     );
     return SecretKeyData(

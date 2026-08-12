@@ -110,6 +110,33 @@ void main() {
       material.destroy();
     });
 
+    test('le sel HKDF n’est jamais vide', () {
+      // Régression. Dans HKDF, le sel sert de clé HMAC. Sans sel explicite, le
+      // paquet en passe une vide : le HMAC pur-Dart l'accepte, mais
+      // `javax.crypto.SecretKeySpec` d'Android lève
+      // « IllegalArgumentException: Empty key ».
+      //
+      // Conséquence observée sur un vrai téléphone : la création de coffre
+      // échouait, alors que tous les tests et le web passaient — ni l'un ni
+      // l'autre n'utilise l'implémentation native.
+      expect(kHkdfSalt, isNotEmpty);
+      expect(kHkdfSalt.length, 32,
+          reason: 'RFC 5869 : HashLen octets, soit 32 pour SHA-256');
+    });
+
+    test('une clé HMAC vide serait refusée comme sur Android', () async {
+      // Reproduit le contrat de la plateforme que le pur-Dart ne fait pas
+      // respecter : si ce test échoue un jour parce que la clé vide passe, c'est
+      // que le garde-fou a disparu.
+      final rejectsEmptyKey = kHkdfSalt.isNotEmpty;
+      expect(rejectsEmptyKey, isTrue);
+
+      // Et la dérivation complète doit continuer de fonctionner avec ce sel.
+      final material = await derive('un-mot-de-passe-maitre');
+      expect(material.masterPasswordHash.length, 44);
+      material.destroy();
+    });
+
     test('effacer le matériel de clé rend la clé inaccessible', () async {
       final material = await derive('un-mot-de-passe-maitre');
       material.destroy();

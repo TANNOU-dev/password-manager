@@ -173,6 +173,11 @@ class _UnlockScreenState extends State<UnlockScreen> {
       _fail('Serveur injoignable. ${e.message.split(':').first}');
     } on ApiFailure catch (e) {
       _fail(e.message);
+    } catch (e, stack) {
+      // Même filet qu'à la création : une exception hors ApiFailure laissait
+      // l'écran figé sans explication.
+      debugPrintStack(stackTrace: stack, label: 'unlock: $e');
+      _fail('Échec inattendu : $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -104,6 +104,13 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
       _fail('Serveur injoignable. ${e.message.split(':').first}');
     } on ApiFailure catch (e) {
       _fail(e.message);
+    } catch (e, stack) {
+      // Filet de dernier recours. Sans lui, toute exception qui n'est pas une
+      // ApiFailure — dérivation de clé, isolat, encodage — traversait sans rien
+      // afficher : le bouton se réactivait et l'écran ne bougeait pas. Sur
+      // l'action la plus critique de l'app, un échec muet est inacceptable.
+      debugPrintStack(stackTrace: stack, label: 'createVault: $e');
+      _fail('Échec inattendu : $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
