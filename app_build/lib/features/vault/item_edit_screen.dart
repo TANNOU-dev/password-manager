@@ -25,13 +25,11 @@ import 'folder_sheet.dart';
 /// change plus après coup — passer une carte bancaire en note perdrait des
 /// champs sans qu'on sache lesquels.
 class ItemEditScreen extends StatefulWidget {
-  const ItemEditScreen({
-    super.key,
-    this.existing,
-    this.type,
-    this.folderId,
-  }) : assert(existing != null || type != null,
-            'Il faut soit un élément à modifier, soit un type à créer');
+  const ItemEditScreen({super.key, this.existing, this.type, this.folderId})
+    : assert(
+        existing != null || type != null,
+        'Il faut soit un élément à modifier, soit un type à créer',
+      );
 
   final CipherItem? existing;
   final CipherType? type;
@@ -69,9 +67,23 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
   // Identité
   final Map<String, TextEditingController> _identity = {
     for (final key in [
-      'title', 'firstName', 'middleName', 'lastName', 'company', 'email',
-      'phone', 'username', 'ssn', 'passportNumber', 'licenseNumber',
-      'address1', 'address2', 'city', 'state', 'postalCode', 'country',
+      'title',
+      'firstName',
+      'middleName',
+      'lastName',
+      'company',
+      'email',
+      'phone',
+      'username',
+      'ssn',
+      'passportNumber',
+      'licenseNumber',
+      'address1',
+      'address2',
+      'city',
+      'state',
+      'postalCode',
+      'country',
     ])
       key: TextEditingController(),
   };
@@ -163,10 +175,18 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
   @override
   void dispose() {
     for (final c in [
-      _nameController, _notesController, _usernameController,
-      _passwordController, _totpController, _cardholderController,
-      _numberController, _expMonthController, _expYearController,
-      _codeController, _privateKeyController, _publicKeyController,
+      _nameController,
+      _notesController,
+      _usernameController,
+      _passwordController,
+      _totpController,
+      _cardholderController,
+      _numberController,
+      _expMonthController,
+      _expYearController,
+      _codeController,
+      _privateKeyController,
+      _publicKeyController,
     ]) {
       c.dispose();
     }
@@ -207,7 +227,8 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
           notes: notes,
           uris: uris,
           fields: fields,
-          passwordHistory: (widget.existing?.data as LoginData?)?.passwordHistory ??
+          passwordHistory:
+              (widget.existing?.data as LoginData?)?.passwordHistory ??
               const [],
           passwordUpdatedAt:
               (widget.existing?.data as LoginData?)?.passwordUpdatedAt,
@@ -270,8 +291,7 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
         final publicKey = _publicKeyController.text.trim();
         return SshKeyData(
           name: name,
-          privateKey:
-              SshKeys.normalizePrivateKey(_privateKeyController.text),
+          privateKey: SshKeys.normalizePrivateKey(_privateKeyController.text),
           publicKey: publicKey,
           // Recalculée à l'enregistrement plutôt que reprise du champ :
           // si l'utilisateur colle une autre clé publique, l'empreinte
@@ -309,17 +329,18 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
     });
 
     try {
-      final base = widget.existing ??
+      final base =
+          widget.existing ??
           CipherItem(data: _buildData(), folderId: _folderId);
       await context.read<VaultRepository>().saveItem(
-            base.copyWith(
-              data: _buildData(),
-              folderId: _folderId,
-              clearFolder: _folderId == null,
-              favorite: _favorite,
-              reprompt: _reprompt,
-            ),
-          );
+        base.copyWith(
+          data: _buildData(),
+          folderId: _folderId,
+          clearFolder: _folderId == null,
+          favorite: _favorite,
+          reprompt: _reprompt,
+        ),
+      );
       if (!mounted) return;
       AppFeedback.show(
         context,
@@ -364,10 +385,10 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
     final folderName = _folderId == null
         ? 'Sans dossier'
         : repo.folders
-                .where((f) => f.id == _folderId)
-                .map((f) => f.name)
-                .firstOrNull ??
-            'Sans dossier';
+                  .where((f) => f.id == _folderId)
+                  .map((f) => f.name)
+                  .firstOrNull ??
+              'Sans dossier';
 
     return Scaffold(
       backgroundColor: c.background,
@@ -437,7 +458,9 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
                 Divider(height: 1, color: c.hairline),
                 SwitchListTile(
                   value: _favorite,
-                  onChanged: _busy ? null : (v) => setState(() => _favorite = v),
+                  onChanged: _busy
+                      ? null
+                      : (v) => setState(() => _favorite = v),
                   secondary: Icon(
                     Icons.star_outline_rounded,
                     color: _favorite ? c.warning : null,
@@ -448,12 +471,12 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
                 Divider(height: 1, color: c.hairline),
                 SwitchListTile(
                   value: _reprompt,
-                  onChanged: _busy ? null : (v) => setState(() => _reprompt = v),
+                  onChanged: _busy
+                      ? null
+                      : (v) => setState(() => _reprompt = v),
                   secondary: const Icon(Icons.password_rounded),
                   title: const Text('Redemander le mot de passe maître'),
-                  subtitle: const Text(
-                    'Pour les éléments les plus sensibles',
-                  ),
+                  subtitle: const Text('Pour les éléments les plus sensibles'),
                 ),
               ],
             ),
@@ -477,7 +500,9 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
   // ==================== SECTIONS PAR TYPE ====================
 
   List<Widget> _loginFields() {
-    final strength = PasswordStrengthEvaluator.evaluate(_passwordController.text);
+    final strength = PasswordStrengthEvaluator.evaluate(
+      _passwordController.text,
+    );
 
     return [
       const SectionLabel('Accès'),
@@ -540,10 +565,10 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
         'Code à usage unique',
         trailing: Text(
           'TOTP',
-          style: Theme.of(context)
-              .textTheme
-              .labelMedium
-              ?.copyWith(color: context.palette.accent, fontSize: 11),
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: context.palette.accent,
+            fontSize: 11,
+          ),
         ),
       ),
       TextField(
@@ -610,10 +635,9 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
       if (_uris.isEmpty)
         Text(
           'Aucune adresse. Elles serviront au remplissage automatique.',
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: context.palette.textTertiary),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: context.palette.textTertiary),
         ),
     ];
   }
@@ -695,15 +719,17 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
         const SizedBox(height: Gap.md),
         Row(
           children: [
-            Icon(Icons.info_outline_rounded,
-                size: 14, color: context.palette.textTertiary),
+            Icon(
+              Icons.info_outline_rounded,
+              size: 14,
+              color: context.palette.textTertiary,
+            ),
             const SizedBox(width: Gap.sm),
             Text(
               'Réseau détecté : ${CardData(name: '', number: _numberController.text).inferredBrand}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: context.palette.textTertiary),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: context.palette.textTertiary,
+              ),
             ),
           ],
         ),
@@ -865,7 +891,9 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
       setState(() {
         // Une clé publique seule ne doit pas effacer une privée déjà saisie :
         // les deux moitiés peuvent arriver par deux fichiers successifs.
-        if (pair.privateKey.isNotEmpty) _privateKeyController.text = pair.privateKey;
+        if (pair.privateKey.isNotEmpty) {
+          _privateKeyController.text = pair.privateKey;
+        }
         _publicKeyController.text = pair.publicKey;
         _fingerprint = pair.fingerprint;
         _obscurePrivateKey = true;
@@ -894,7 +922,8 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
   List<Widget> _sshKeyFields() {
     final c = context.palette;
     final text = Theme.of(context).textTheme;
-    final hasKey = _privateKeyController.text.trim().isNotEmpty ||
+    final hasKey =
+        _privateKeyController.text.trim().isNotEmpty ||
         _publicKeyController.text.trim().isNotEmpty;
 
     return [
@@ -1054,8 +1083,9 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
         SectionLabel(
           'Champs personnalisés',
           trailing: TextButton.icon(
-            onPressed:
-                _busy ? null : () => setState(() => _fields.add(_FieldDraft())),
+            onPressed: _busy
+                ? null
+                : () => setState(() => _fields.add(_FieldDraft())),
             icon: const Icon(Icons.add_rounded, size: 16),
             label: const Text('Ajouter'),
             style: TextButton.styleFrom(
@@ -1084,10 +1114,9 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
           Text(
             'Pour ce qui n’entre dans aucun champ : question secrète, numéro '
             'de client, code PIN…',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: context.palette.textTertiary),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: context.palette.textTertiary,
+            ),
           ),
       ],
     );
@@ -1102,7 +1131,7 @@ class _UriDraft {
   UriMatchType match;
 
   _UriDraft({String uri = '', this.match = UriMatchType.domain})
-      : controller = TextEditingController(text: uri);
+    : controller = TextEditingController(text: uri);
 
   factory _UriDraft.from(LoginUri uri) =>
       _UriDraft(uri: uri.uri, match: uri.match);
@@ -1121,20 +1150,17 @@ class _FieldDraft {
     String name = '',
     String value = '',
     this.type = CustomFieldType.text,
-  })  : nameController = TextEditingController(text: name),
-        valueController = TextEditingController(text: value);
+  }) : nameController = TextEditingController(text: name),
+       valueController = TextEditingController(text: value);
 
-  factory _FieldDraft.from(CustomField field) => _FieldDraft(
-        name: field.name,
-        value: field.value,
-        type: field.type,
-      );
+  factory _FieldDraft.from(CustomField field) =>
+      _FieldDraft(name: field.name, value: field.value, type: field.type);
 
   CustomField toField() => CustomField(
-        name: nameController.text.trim(),
-        value: valueController.text,
-        type: type,
-      );
+    name: nameController.text.trim(),
+    value: valueController.text,
+    type: type,
+  );
 
   void dispose() {
     nameController.dispose();
@@ -1183,36 +1209,43 @@ class _UriRow extends StatelessWidget {
               IconButton(
                 tooltip: 'Retirer',
                 onPressed: enabled ? onRemove : null,
-                icon: Icon(Icons.close_rounded, size: 18, color: c.textTertiary),
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: c.textTertiary,
+                ),
               ),
             ],
           ),
           const SizedBox(height: Gap.sm),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<UriMatchType>(
-                value: draft.match,
-                isDense: true,
-                borderRadius: Radii.all(Radii.sm),
-                dropdownColor: c.surfaceRaised,
-                style: Theme.of(context).textTheme.bodySmall,
-                items: [
-                  for (final type in UriMatchType.values)
-                    DropdownMenuItem(
-                      value: type,
-                      child: Text('Correspondance : ${type.label}'),
-                    ),
-                ],
-                onChanged: enabled
-                    ? (value) {
-                        if (value != null) {
-                          draft.match = value;
-                          onChanged();
-                        }
+          DropdownButtonHideUnderline(
+            child: DropdownButton<UriMatchType>(
+              value: draft.match,
+              isDense: true,
+              // Sans cela, le bouton se dimensionne sur son libellé le plus
+              // long et débordait de 159 points sur un écran de 360.
+              // `isExpanded` le borne à la largeur disponible et laisse le
+              // texte s'élider. L'`Align` qui l'entourait devient inutile :
+              // le bouton occupe désormais toute la largeur.
+              isExpanded: true,
+              borderRadius: Radii.all(Radii.sm),
+              dropdownColor: c.surfaceRaised,
+              style: Theme.of(context).textTheme.bodySmall,
+              items: [
+                for (final type in UriMatchType.values)
+                  DropdownMenuItem(
+                    value: type,
+                    child: Text('Correspondance : ${type.label}'),
+                  ),
+              ],
+              onChanged: enabled
+                  ? (value) {
+                      if (value != null) {
+                        draft.match = value;
+                        onChanged();
                       }
-                    : null,
-              ),
+                    }
+                  : null,
             ),
           ),
         ],
@@ -1259,7 +1292,11 @@ class _FieldRow extends StatelessWidget {
               IconButton(
                 tooltip: 'Retirer',
                 onPressed: enabled ? onRemove : null,
-                icon: Icon(Icons.close_rounded, size: 18, color: c.textTertiary),
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: c.textTertiary,
+                ),
               ),
             ],
           ),
@@ -1353,17 +1390,22 @@ class _SaveBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.md, Gap.xl, Gap.md),
       child: SafeArea(
         top: false,
-        child: Row(
+        // Deux boutons pleine largeur, l'action principale au-dessus.
+        //
+        // Ils étaient côte à côte, et « Annuler » se coupait en « Annule » et
+        // « r ». Mesuré sur un écran de 360 — 320 utiles : « Annuler » réclame
+        // 105 points de texte, « Enregistrer » davantage, plus l'icône et deux
+        // marges internes. La rangée ne tient sur aucun téléphone courant.
+        //
+        // J'ai d'abord essayé de basculer selon la largeur disponible. Le seuil
+        // n'aurait jamais été atteint sur un téléphone : il n'apportait qu'un
+        // nombre de plus à régler faux. Empiler tient dans toutes les langues
+        // et à toutes les tailles de police, sans rien à calculer.
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: busy ? null : () => Navigator.of(context).pop(),
-                child: const Text('Annuler'),
-              ),
-            ),
-            const SizedBox(width: Gap.md),
-            Expanded(
-              flex: 2,
+            SizedBox(
+              width: double.infinity,
               child: FilledButton.icon(
                 onPressed: (busy || !enabled) ? null : onSave,
                 icon: busy
@@ -1373,7 +1415,17 @@ class _SaveBar extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.lock_rounded, size: 18),
-                label: Text(busy ? 'Chiffrement…' : (isNew ? 'Ajouter' : 'Enregistrer')),
+                label: Text(
+                  busy ? 'Chiffrement…' : (isNew ? 'Ajouter' : 'Enregistrer'),
+                ),
+              ),
+            ),
+            const SizedBox(height: Gap.sm),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: busy ? null : () => Navigator.of(context).pop(),
+                child: const Text('Annuler'),
               ),
             ),
           ],

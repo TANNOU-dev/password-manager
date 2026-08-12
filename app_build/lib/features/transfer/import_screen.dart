@@ -50,12 +50,12 @@ class _ImportScreenState extends State<ImportScreen> {
       // le coffre se verrouillait pendant qu'on choisissait le fichier, et
       // l'import échouait ensuite sur un coffre sans clé.
       result = await context.read<LockController>().duringExcursion(
-            () => FilePicker.platform.pickFiles(
-              type: FileType.custom,
-              allowedExtensions: importExtensions,
-              withData: kIsWeb,
-            ),
-          );
+        () => FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: importExtensions,
+          withData: kIsWeb,
+        ),
+      );
     } catch (e) {
       setState(() => _error = 'Impossible d’ouvrir le sélecteur : $e');
       return;
@@ -134,11 +134,11 @@ class _ImportScreenState extends State<ImportScreen> {
 
     try {
       final count = await context.read<VaultRepository>().importParsed(
-            parsed,
-            onProgress: (step) {
-              if (mounted) setState(() => _progress = step);
-            },
-          );
+        parsed,
+        onProgress: (step) {
+          if (mounted) setState(() => _progress = step);
+        },
+      );
       if (!mounted) return;
       setState(() {
         _imported = count;
@@ -172,7 +172,10 @@ class _ImportScreenState extends State<ImportScreen> {
         padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.sm, Gap.xl, Gap.giant),
         children: [
           if (_imported != null)
-            _SuccessCard(count: _imported!, onDone: () => Navigator.pop(context))
+            _SuccessCard(
+              count: _imported!,
+              onDone: () => Navigator.pop(context),
+            )
           else ...[
             Text(
               'Coffort rechiffre chaque entrée avec votre clé avant de '
@@ -211,20 +214,19 @@ class _ImportScreenState extends State<ImportScreen> {
               const SizedBox(height: Gap.xl),
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _busy
-                          ? null
-                          : () => setState(() {
-                                _parsed = null;
-                                _fileName = null;
-                              }),
-                      child: const Text('Annuler'),
-                    ),
+                  // Largeur naturelle pour le secondaire : voir la note dans
+                  // item_edit_screen.dart, même défaut, même correction.
+                  OutlinedButton(
+                    onPressed: _busy
+                        ? null
+                        : () => setState(() {
+                            _parsed = null;
+                            _fileName = null;
+                          }),
+                    child: const Text('Annuler'),
                   ),
                   const SizedBox(width: Gap.md),
                   Expanded(
-                    flex: 2,
                     child: FilledButton.icon(
                       onPressed: _busy ? null : _confirmImport,
                       icon: _busy
@@ -238,7 +240,7 @@ class _ImportScreenState extends State<ImportScreen> {
                         _busy
                             ? 'Chiffrement…'
                             : 'Importer ${_parsed!.count} élément'
-                                '${_parsed!.count > 1 ? 's' : ''}',
+                                  '${_parsed!.count > 1 ? 's' : ''}',
                       ),
                     ),
                   ),
@@ -288,13 +290,15 @@ class _SupportedFormats extends StatelessWidget {
                         children: [
                           TextSpan(
                             text: name,
-                            style: text.bodySmall
-                                ?.copyWith(color: c.textPrimary),
+                            style: text.bodySmall?.copyWith(
+                              color: c.textPrimary,
+                            ),
                           ),
                           TextSpan(
                             text: ' — $format',
-                            style: text.bodySmall
-                                ?.copyWith(color: c.textTertiary),
+                            style: text.bodySmall?.copyWith(
+                              color: c.textTertiary,
+                            ),
                           ),
                         ],
                       ),
@@ -306,7 +310,10 @@ class _SupportedFormats extends StatelessWidget {
           const SizedBox(height: Gap.xs),
           Text(
             'Le format est détecté d’après le contenu, pas d’après l’extension.',
-            style: text.bodySmall?.copyWith(color: c.textTertiary, fontSize: 11),
+            style: text.bodySmall?.copyWith(
+              color: c.textTertiary,
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -323,11 +330,7 @@ String _plural(int count, String singular) =>
     '$count $singular${count > 1 ? 's' : ''}';
 
 class _PreviewCard extends StatelessWidget {
-  const _PreviewCard({
-    required this.parsed,
-    this.fileName,
-    this.progress,
-  });
+  const _PreviewCard({required this.parsed, this.fileName, this.progress});
 
   final ParsedImport parsed;
   final String? fileName;
@@ -342,8 +345,9 @@ class _PreviewCard extends StatelessWidget {
     // Compté ici plutôt que dans le dépôt : l'aperçu doit annoncer le nombre
     // réel avant validation, et c'est le même critère qui servira à l'import.
     final present = context.read<VaultRepository>().existingFingerprints;
-    final alreadyInVault =
-        parsed.items.where((i) => present.contains(i.contentFingerprint)).length;
+    final alreadyInVault = parsed.items
+        .where((i) => present.contains(i.contentFingerprint))
+        .length;
 
     return HairlineCard(
       child: Column(
@@ -358,8 +362,11 @@ class _PreviewCard extends StatelessWidget {
                   color: c.primaryWash,
                   borderRadius: Radii.all(Radii.sm),
                 ),
-                child: Icon(Icons.description_outlined,
-                    size: 20, color: c.primary),
+                child: Icon(
+                  Icons.description_outlined,
+                  size: 20,
+                  color: c.primary,
+                ),
               ),
               const SizedBox(width: Gap.md),
               Expanded(
@@ -383,9 +390,11 @@ class _PreviewCard extends StatelessWidget {
           ),
           const SizedBox(height: Gap.xl),
 
-          Text('${parsed.count} élément${parsed.count > 1 ? 's' : ''} reconnu'
-              '${parsed.count > 1 ? 's' : ''}',
-              style: text.titleLarge),
+          Text(
+            '${parsed.count} élément${parsed.count > 1 ? 's' : ''} reconnu'
+            '${parsed.count > 1 ? 's' : ''}',
+            style: text.titleLarge,
+          ),
 
           // Les entrées écartées sont annoncées avant validation : un import qui
           // retire des lignes sans le dire ferait douter du compte final.
@@ -394,8 +403,7 @@ class _PreviewCard extends StatelessWidget {
             for (final line in [
               if (parsed.duplicatesInFile > 0)
                 '${_plural(parsed.duplicatesInFile, 'doublon')} dans le fichier',
-              if (alreadyInVault > 0)
-                '$alreadyInVault déjà dans le coffre',
+              if (alreadyInVault > 0) '$alreadyInVault déjà dans le coffre',
             ])
               Padding(
                 padding: const EdgeInsets.only(bottom: Gap.xxs),
@@ -456,9 +464,7 @@ class _PreviewCard extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 const SizedBox(width: Gap.md),
-                Expanded(
-                  child: Text(progress!, style: text.bodySmall),
-                ),
+                Expanded(child: Text(progress!, style: text.bodySmall)),
               ],
             ),
           ],
@@ -550,7 +556,10 @@ class _SkippedList extends StatelessWidget {
           if (skipped.length > 8)
             Text(
               '… et ${skipped.length - 8} autre${skipped.length - 8 > 1 ? 's' : ''}',
-              style: text.bodySmall?.copyWith(color: c.textTertiary, fontSize: 12),
+              style: text.bodySmall?.copyWith(
+                color: c.textTertiary,
+                fontSize: 12,
+              ),
             ),
         ],
       ),
