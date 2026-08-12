@@ -16,6 +16,29 @@ function listEnv(name, fallback) {
   return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+// Taille maximale du corps des requêtes.
+//
+// Validée ici plutôt que confiée telle quelle à express.json. Une valeur mal
+// écrite — « 512k » au lieu de « 512kb » — n'est pas rejetée par la couche de
+// dessous : elle **désactive silencieusement** le contrôle de taille, et le
+// serveur accepte alors des corps sans limite. C'est le sujet de l'avis
+// GHSA-v422-hmwv-36x6 sur body-parser.
+//
+// Refuser de démarrer est le bon comportement : un serveur qui tourne sans la
+// protection qu'on croit avoir configurée est pire qu'un serveur qui ne
+// démarre pas.
+function byteSizeEnv(name, fallback) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+  if (!/^\d+(\.\d+)?\s*(b|kb|mb|gb)$/i.test(raw.trim())) {
+    throw new Error(
+      `${name} doit être une taille comme "512kb" ou "2mb", reçu "${raw}". ` +
+        'Une valeur non reconnue désactiverait la limite sans prévenir.',
+    );
+  }
+  return raw.trim();
+}
+
 module.exports = {
   port: intEnv('PORT', 3000),
   host: process.env.HOST || '0.0.0.0',
@@ -51,5 +74,5 @@ module.exports = {
 
   // Taille maximale d'un corps de requête. Un blob chiffré d'élément reste petit ;
   // cette borne évite qu'un client épuise la mémoire du serveur.
-  maxBodyBytes: process.env.PASSVAULT_MAX_BODY || '512kb',
+  maxBodyBytes: byteSizeEnv('PASSVAULT_MAX_BODY', '512kb'),
 };

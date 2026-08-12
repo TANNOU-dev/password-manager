@@ -282,8 +282,10 @@ void main() {
         exportPassword: 'phrase-de-passe-de-sauvegarde',
         kdf: _fastKdf,
       );
-      expect(jsonDecode(a)['kdfSalt'], isNot(jsonDecode(b)['kdfSalt']));
-      expect(jsonDecode(a)['data'], isNot(jsonDecode(b)['data']));
+      final first = jsonDecode(a) as Map<String, dynamic>;
+      final second = jsonDecode(b) as Map<String, dynamic>;
+      expect(first['kdfSalt'], isNot(second['kdfSalt']));
+      expect(first['data'], isNot(second['data']));
     });
 
     test('refuse une phrase de passe trop courte', () async {

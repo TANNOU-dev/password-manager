@@ -316,6 +316,12 @@ class _SupportedFormats extends StatelessWidget {
 
 /// Récapitulatif avant écriture. C'est ici que se joue la confiance : on annonce
 /// ce qui va entrer, et surtout ce qui a été laissé de côté.
+/// « 3 doublons », « 1 doublon ». Extrait pour éviter d'écrire deux chaînes
+/// adjacentes dans une liste : la forme est indiscernable d'une virgule
+/// oubliée, et c'est précisément là que ce genre d'erreur se cache.
+String _plural(int count, String singular) =>
+    '$count $singular${count > 1 ? 's' : ''}';
+
 class _PreviewCard extends StatelessWidget {
   const _PreviewCard({
     required this.parsed,
@@ -387,8 +393,7 @@ class _PreviewCard extends StatelessWidget {
             const SizedBox(height: Gap.sm),
             for (final line in [
               if (parsed.duplicatesInFile > 0)
-                '${parsed.duplicatesInFile} doublon'
-                    '${parsed.duplicatesInFile > 1 ? 's' : ''} dans le fichier',
+                '${_plural(parsed.duplicatesInFile, 'doublon')} dans le fichier',
               if (alreadyInVault > 0)
                 '$alreadyInVault déjà dans le coffre',
             ])

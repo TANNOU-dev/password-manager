@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -191,7 +193,11 @@ class _UnlockScreenState extends State<UnlockScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const CreateVaultScreen()),
     );
-    if (mounted) _probeServer();
+    // Volontairement non attendu : l'écran est déjà utilisable, ce sondage ne
+    // fait qu'ajuster la présence du bouton « En créer un » quand la réponse
+    // arrive. `unawaited` le dit explicitement plutôt que de laisser croire à
+    // un `await` oublié.
+    if (mounted) unawaited(_probeServer());
   }
 
   @override
