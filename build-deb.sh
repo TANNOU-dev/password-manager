@@ -80,7 +80,7 @@ fi
 if command -v update-desktop-database &> /dev/null; then
     update-desktop-database 2>/dev/null || true
 fi
-echo "✅ PassVault installé ! Cherchez-le dans le menu Applications."
+echo "✅ Coffort installé ! Cherchez-le dans le menu Applications."
 POST
 chmod 755 "$PKG_DIR/DEBIAN/postinst"
 

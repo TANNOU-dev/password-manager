@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "passvault-app",
+      "name": "coffort-app",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",

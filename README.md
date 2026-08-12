@@ -1,8 +1,8 @@
-# PassVault 🔐
+# Coffort 🔐
 
 > Gestionnaire de mots de passe sécurisé — chiffré de bout en bout
 
-**PassVault** est une application de gestion de mots de passe avec chiffrement AES, authentification biométrique, et générateur de mots de passe forts. Développé avec **Flutter** (frontend) et **Node.js/Express + SQLite** (backend).
+**Coffort** est une application de gestion de mots de passe avec chiffrement AES, authentification biométrique, et générateur de mots de passe forts. Développé avec **Flutter** (frontend) et **Node.js/Express + SQLite** (backend).
 
 ---
 
@@ -107,7 +107,7 @@ npm install --production
 
 # Avec PM2 pour la gestion de processus
 npm install -g pm2
-pm2 start server.js --name passvault-api
+pm2 start server.js --name passvault-v2
 pm2 save
 pm2 startup
 ```

@@ -9,7 +9,7 @@ const { createApp } = require('../src/app');
 
 // Base neuve par exécution : les tests ne doivent jamais toucher un vrai coffre.
 const dbPath = path.join(
-  fs.mkdtempSync(path.join(os.tmpdir(), 'passvault-test-')),
+  fs.mkdtempSync(path.join(os.tmpdir(), 'coffort-test-')),
   'vault.db'
 );
 

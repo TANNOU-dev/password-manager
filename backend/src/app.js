@@ -55,7 +55,7 @@ function createApp(config, store = new VaultStore(config.dbPath)) {
 
   app.get('/api/status', (req, res) => {
     res.json({
-      service: 'passvault',
+      service: 'coffort',
       apiVersion: 2,
       zeroKnowledge: true,
       // Permet à l'app de savoir si elle doit proposer « créer un coffre ».
