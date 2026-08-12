@@ -26,6 +26,9 @@ backend/passwords.db
 backend/vault.db
 backend/vault.db-wal
 backend/vault.db-shm
+# Copies de sauvegarde : elles ne doivent jamais entrer dans le dépôt, et leur
+# présence ne doit pas non plus faire échouer un contrôle d'arbre propre.
+backend/vault.db.*
 
 # Exports de coffre : contenu EN CLAIR, ne doit jamais entrer dans un dépôt
 coffre-v1.json
