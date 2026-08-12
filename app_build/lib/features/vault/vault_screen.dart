@@ -29,13 +29,13 @@ enum VaultFilter {
   final IconData icon;
 
   bool accepts(CipherItem item) => switch (this) {
-        VaultFilter.all => true,
-        VaultFilter.favorites => item.favorite,
-        VaultFilter.logins => item.type == CipherType.login,
-        VaultFilter.cards => item.type == CipherType.card,
-        VaultFilter.identities => item.type == CipherType.identity,
-        VaultFilter.notes => item.type == CipherType.secureNote,
-      };
+    VaultFilter.all => true,
+    VaultFilter.favorites => item.favorite,
+    VaultFilter.logins => item.type == CipherType.login,
+    VaultFilter.cards => item.type == CipherType.card,
+    VaultFilter.identities => item.type == CipherType.identity,
+    VaultFilter.notes => item.type == CipherType.secureNote,
+  };
 }
 
 class VaultScreen extends StatefulWidget {
@@ -71,12 +71,14 @@ class _VaultScreenState extends State<VaultScreen> {
   /// pas la faire : il ne voit que des blobs opaques.
   List<CipherItem> _visible(List<CipherItem> items) {
     final query = _query.trim().toLowerCase();
-    return items.where((item) {
-      if (!_filter.accepts(item)) return false;
-      if (_folderId != null && item.folderId != _folderId) return false;
-      if (query.isEmpty) return true;
-      return item.data.searchHaystack.contains(query);
-    }).toList(growable: false)
+    return items
+        .where((item) {
+          if (!_filter.accepts(item)) return false;
+          if (_folderId != null && item.folderId != _folderId) return false;
+          if (query.isEmpty) return true;
+          return item.data.searchHaystack.contains(query);
+        })
+        .toList(growable: false)
       ..sort((a, b) {
         // Favoris d'abord, puis alphabétique. Un tri par date de révision
         // remonterait ce qu'on vient de modifier, ce qui déplace les lignes sous
@@ -112,137 +114,171 @@ class _VaultScreenState extends State<VaultScreen> {
       for (final h in health.problematic)
         if (h.item.id != null) h.item.id!: h,
     };
-    final activeFolder =
-        _folderId == null ? null : repo.folders.where((f) => f.id == _folderId);
+    final activeFolder = _folderId == null
+        ? null
+        : repo.folders.where((f) => f.id == _folderId);
 
     return Scaffold(
       backgroundColor: c.background,
-      body: RefreshIndicator(
-        onRefresh: _sync,
-        color: c.primary,
-        backgroundColor: c.surface,
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xl, Gap.xl, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      // En-tête figé, liste défilante.
+      //
+      // Le titre, la recherche et les filtres sont les commandes de l'écran :
+      // les faire disparaître au défilement oblige à remonter toute la liste
+      // pour changer de filtre ou lancer une recherche. Seul le contenu bouge.
+      //
+      // `RefreshIndicator` enveloppe la seule partie défilante, sinon le geste
+      // de rafraîchissement n'aurait plus de zone où s'amorcer.
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xl, Gap.xl, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                activeFolder?.isNotEmpty == true
-                                    ? activeFolder!.first.name
-                                    : 'Mon coffre',
-                                style: text.headlineMedium,
-                              ),
-                              const SizedBox(height: Gap.xxs),
-                              _SubtitleLine(
-                                count: items.length,
-                                lastSync: repo.lastSync,
-                              ),
-                            ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            activeFolder?.isNotEmpty == true
+                                ? activeFolder!.first.name
+                                : 'Mon coffre',
+                            style: text.headlineMedium,
                           ),
-                        ),
-                        _OverflowMenu(
-                          onFolders: () => _pickFolder(repo),
-                          onTrash: _openTrash,
-                          onLock: () => repo.lock(),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: Gap.xl),
-
-                    TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Rechercher un site, un identifiant…',
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                        suffixIcon: _query.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'Effacer',
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() => _query = '');
-                                },
-                                icon: const Icon(Icons.close_rounded, size: 18),
-                              ),
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: Gap.md),
+                          const SizedBox(height: Gap.xxs),
+                          _SubtitleLine(
+                            count: items.length,
+                            lastSync: repo.lastSync,
+                          ),
+                        ],
                       ),
-                      onChanged: (v) => setState(() => _query = v),
                     ),
-
-                    if (_syncError != null) ...[
-                      const SizedBox(height: Gap.lg),
-                      InlineError(message: _syncError!, onRetry: _sync),
-                    ],
-
-                    if (repo.undecryptable.isNotEmpty) ...[
-                      const SizedBox(height: Gap.lg),
-                      _UndecryptableNotice(count: repo.undecryptable.length),
-                    ],
-
-                    if (!health.isClean && _query.isEmpty) ...[
-                      const SizedBox(height: Gap.lg),
-                      _HealthBanner(report: health),
-                    ],
-
-                    const SizedBox(height: Gap.xl),
-                    _FilterBar(
-                      selected: _filter,
-                      folderName: activeFolder?.isNotEmpty == true
-                          ? activeFolder!.first.name
-                          : null,
-                      onSelected: (f) => setState(() => _filter = f),
-                      onClearFolder: () => setState(() => _folderId = null),
+                    _OverflowMenu(
+                      onFolders: () => _pickFolder(repo),
+                      onTrash: _openTrash,
+                      onLock: () => repo.lock(),
                     ),
-                    const SizedBox(height: Gap.lg),
-
-                    if (visible.isNotEmpty)
-                      SectionLabel(
-                        '${visible.length} élément${visible.length > 1 ? 's' : ''}',
-                      ),
                   ],
                 ),
+                const SizedBox(height: Gap.xl),
+
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Rechercher un site, un identifiant…',
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Effacer',
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _query = '');
+                            },
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                          ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: Gap.md,
+                    ),
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+
+                const SizedBox(height: Gap.xl),
+                _FilterBar(
+                  selected: _filter,
+                  folderName: activeFolder?.isNotEmpty == true
+                      ? activeFolder!.first.name
+                      : null,
+                  onSelected: (f) => setState(() => _filter = f),
+                  onClearFolder: () => setState(() => _folderId = null),
+                ),
+                const SizedBox(height: Gap.lg),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _sync,
+              color: c.primary,
+              backgroundColor: c.surface,
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Gap.xl),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_syncError != null) ...[
+                            InlineError(message: _syncError!, onRetry: _sync),
+                            const SizedBox(height: Gap.lg),
+                          ],
+
+                          if (repo.undecryptable.isNotEmpty) ...[
+                            _UndecryptableNotice(
+                              count: repo.undecryptable.length,
+                            ),
+                            const SizedBox(height: Gap.lg),
+                          ],
+
+                          if (!health.isClean && _query.isEmpty) ...[
+                            _HealthBanner(report: health),
+                            const SizedBox(height: Gap.lg),
+                          ],
+
+                          if (visible.isNotEmpty)
+                            SectionLabel(
+                              '${visible.length} élément'
+                              '${visible.length > 1 ? 's' : ''}',
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  if (visible.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _emptyState(items.isEmpty),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
+                        Gap.xl,
+                        0,
+                        Gap.xl,
+                        140,
+                      ),
+                      sliver: SliverList.separated(
+                        itemCount: visible.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: Gap.sm),
+                        itemBuilder: (context, i) {
+                          final item = visible[i];
+                          final issue =
+                              healthByItemId[item.id]?.primaryIssue?.label;
+                          return StaggeredEntrance(
+                            index: i,
+                            child: VaultItemTile(
+                              item: item,
+                              warning: issue,
+                              onTap: () => _openDetail(item),
+                              onCopyPassword: () => _copyPassword(item),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
               ),
             ),
-
-            if (visible.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _emptyState(items.isEmpty),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, 140),
-                sliver: SliverList.separated(
-                  itemCount: visible.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: Gap.sm),
-                  itemBuilder: (context, i) {
-                    final item = visible[i];
-                    final issue =
-                        healthByItemId[item.id]?.primaryIssue?.label;
-                    return StaggeredEntrance(
-                      index: i,
-                      child: VaultItemTile(
-                        item: item,
-                        warning: issue,
-                        onTap: () => _openDetail(item),
-                        onCopyPassword: () => _copyPassword(item),
-                      ),
-                    );
-                  },
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
       ),
       floatingActionButton: _AddButton(onPressed: _openNew),
     );
@@ -253,7 +289,8 @@ class _VaultScreenState extends State<VaultScreen> {
       return EmptyState(
         icon: Icons.shield_outlined,
         title: 'Coffre vide',
-        message: 'Ajoutez un premier identifiant. Il sera chiffré sur cet '
+        message:
+            'Ajoutez un premier identifiant. Il sera chiffré sur cet '
             'appareil avant de partir vers le serveur.',
         action: FilledButton.icon(
           onPressed: _openNew,
@@ -298,9 +335,9 @@ class _VaultScreenState extends State<VaultScreen> {
   }
 
   void _openTrash() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const TrashScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const TrashScreen()));
   }
 
   Future<void> _pickFolder(VaultRepository repo) async {
@@ -335,10 +372,9 @@ class _SubtitleLine extends StatelessWidget {
     }
     return Text(
       parts.join(' · '),
-      style: Theme.of(context)
-          .textTheme
-          .bodySmall
-          ?.copyWith(color: c.textTertiary),
+      style: Theme.of(
+        context,
+      ).textTheme.bodySmall?.copyWith(color: c.textTertiary),
     );
   }
 }
@@ -440,8 +476,11 @@ class _HealthBanner extends StatelessWidget {
               color: c.warning.withValues(alpha: 0.16),
               borderRadius: Radii.all(Radii.sm),
             ),
-            child: Icon(Icons.health_and_safety_outlined,
-                size: 20, color: c.warning),
+            child: Icon(
+              Icons.health_and_safety_outlined,
+              size: 20,
+              color: c.warning,
+            ),
           ),
           const SizedBox(width: Gap.md),
           Expanded(
@@ -477,7 +516,8 @@ class _UndecryptableNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InlineError(
-      message: '$count élément${count > 1 ? 's' : ''} n’a pas pu être '
+      message:
+          '$count élément${count > 1 ? 's' : ''} n’a pas pu être '
           'déchiffré. Il reste stocké sur le serveur, mais son contenu est '
           'abîmé — probablement écrit par une version antérieure.',
     );
@@ -568,7 +608,11 @@ class _Chip extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(icon, size: 15, color: selected ? c.primary : c.textTertiary),
+              Icon(
+                icon,
+                size: 15,
+                color: selected ? c.primary : c.textTertiary,
+              ),
               const SizedBox(width: Gap.sm),
               Text(
                 label,
@@ -688,8 +732,9 @@ class _TypePickerSheet extends StatelessWidget {
                             const SizedBox(height: Gap.xxs),
                             Text(
                               _descriptions[type]!,
-                              style: text.bodySmall
-                                  ?.copyWith(color: c.textTertiary),
+                              style: text.bodySmall?.copyWith(
+                                color: c.textTertiary,
+                              ),
                             ),
                           ],
                         ),

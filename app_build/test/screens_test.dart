@@ -115,6 +115,18 @@ Widget _wrap(Widget child, VaultRepository repo, {AppSettings? settings}) {
   );
 }
 
+/// La zone défilante **verticale** de l'écran.
+///
+/// `find.byType(Scrollable).first` dépendait de l'ordre de l'arbre, et cet
+/// ordre a changé le jour où l'en-tête a été figé au-dessus de la liste : la
+/// barre de filtres, qui défile horizontalement, arrivait alors en premier et
+/// le glissement vertical ne produisait plus rien. On désigne l'axe voulu.
+final Finder _verticalScrollable = find
+    .byWidgetPredicate(
+      (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+    )
+    .first;
+
 void main() {
   testWidgets('la liste du coffre affiche chaque élément', (tester) async {
     final repo = await _seeded();
@@ -135,7 +147,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Codes de récupération'),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _verticalScrollable,
     );
     expect(find.text('Codes de récupération'), findsOneWidget);
     expect(find.text('Carte Ecobank'), findsOneWidget);
@@ -313,7 +325,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Mot de passe réutilisé (2)'),
       250,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _verticalScrollable,
     );
     expect(find.text('Mot de passe faible (1)'), findsOneWidget);
     expect(find.text('Mot de passe réutilisé (2)'), findsOneWidget);

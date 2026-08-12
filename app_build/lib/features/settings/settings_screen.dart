@@ -39,251 +39,290 @@ class SettingsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: c.background,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xl, Gap.xl, 120),
+      // Titre figé, contenu défilant : on doit savoir où l'on se trouve sans
+      // avoir à remonter en haut de la page.
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Réglages', style: text.headlineMedium),
-          const SizedBox(height: Gap.xxl),
-
-          // ── Coffre ──
-          const SectionLabel('Coffre'),
-          HairlineCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.alternate_email_rounded),
-                  title: const Text('Compte'),
-                  subtitle: Text(profile?.email ?? '—'),
-                ),
-                Divider(height: 1, color: c.hairline),
-                ListTile(
-                  leading: const Icon(Icons.folder_outlined),
-                  title: const Text('Dossiers'),
-                  subtitle: Text(
-                    '${repo.folders.length} dossier'
-                    '${repo.folders.length > 1 ? 's' : ''}',
-                  ),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => const FolderSheet(),
-                  ),
-                ),
-                Divider(height: 1, color: c.hairline),
-                ListTile(
-                  leading: const Icon(Icons.delete_outline_rounded),
-                  title: const Text('Corbeille'),
-                  subtitle: Text(
-                    '${repo.trash.length} élément'
-                    '${repo.trash.length > 1 ? 's' : ''}',
-                  ),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const TrashScreen()),
-                  ),
-                ),
-              ],
-            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xl, Gap.xl, Gap.xxl),
+            child: Text('Réglages', style: text.headlineMedium),
           ),
-
-          // ── Remplissage automatique ──
-          const SizedBox(height: Gap.xxl),
-          const SectionLabel('Remplissage automatique'),
-          const AutofillSettingCard(),
-
-          // ── Verrouillage ──
-          const SizedBox(height: Gap.xxl),
-          const SectionLabel('Verrouillage'),
-          const _LockSection(),
-
-          // ── Transfert ──
-          const SizedBox(height: Gap.xxl),
-          const SectionLabel('Sauvegarde et transfert'),
-          HairlineCard(
-            padding: EdgeInsets.zero,
-            child: Column(
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, 120),
               children: [
-                ListTile(
-                  leading: const Icon(Icons.download_outlined),
-                  title: const Text('Importer un coffre'),
-                  subtitle: const Text(
-                    'Bitwarden, KeePass, Chrome, LastPass, 1Password…',
-                  ),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ImportScreen()),
-                  ),
-                ),
-                Divider(height: 1, color: c.hairline),
-                ListTile(
-                  leading: const Icon(Icons.upload_outlined),
-                  title: const Text('Exporter le coffre'),
-                  subtitle: const Text(
-                    'Sauvegarde chiffrée, ou export en clair pour migrer',
-                  ),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ExportScreen()),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Apparence ──
-          const SizedBox(height: Gap.xxl),
-          const SectionLabel('Apparence'),
-          HairlineCard(
-            padding: EdgeInsets.zero,
-            // La valeur et le rappel sont désormais portés par l'ancêtre
-            // RadioGroup, plus par chaque tuile.
-            child: RadioGroup<ThemeMode>(
-              groupValue: settings.themeMode,
-              onChanged: (v) {
-                if (v != null) settings.setThemeMode(v);
-              },
-              child: Column(
-                children: [
-                  for (final mode in ThemeMode.values)
-                    RadioListTile<ThemeMode>(
-                      value: mode,
-                      title: Text(switch (mode) {
-                        ThemeMode.system => 'Suivre le système',
-                        ThemeMode.light => 'Clair',
-                        ThemeMode.dark => 'Sombre',
-                      }),
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          // ── Chiffrement ──
-          const SizedBox(height: Gap.xxl),
-          const SectionLabel('Chiffrement'),
-          HairlineCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.memory_rounded, size: 17, color: c.accent),
-                    const SizedBox(width: Gap.sm),
-                    Expanded(
-                      child: Text(
-                        profile?.kdf.label ?? '—',
-                        style: text.bodyMedium?.copyWith(color: c.textPrimary),
+                // ── Coffre ──
+                const SectionLabel('Coffre'),
+                HairlineCard(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.alternate_email_rounded),
+                        title: const Text('Compte'),
+                        subtitle: Text(profile?.email ?? '—'),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: Gap.sm),
-                Row(
-                  children: [
-                    Icon(Icons.lock_rounded, size: 17, color: c.accent),
-                    const SizedBox(width: Gap.sm),
-                    Expanded(
-                      child: Text(
-                        'AES-256-GCM par élément',
-                        style: text.bodyMedium?.copyWith(color: c.textPrimary),
+                      Divider(height: 1, color: c.hairline),
+                      ListTile(
+                        leading: const Icon(Icons.folder_outlined),
+                        title: const Text('Dossiers'),
+                        subtitle: Text(
+                          '${repo.folders.length} dossier'
+                          '${repo.folders.length > 1 ? 's' : ''}',
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => const FolderSheet(),
+                        ),
                       ),
+                      Divider(height: 1, color: c.hairline),
+                      ListTile(
+                        leading: const Icon(Icons.delete_outline_rounded),
+                        title: const Text('Corbeille'),
+                        subtitle: Text(
+                          '${repo.trash.length} élément'
+                          '${repo.trash.length > 1 ? 's' : ''}',
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const TrashScreen(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── Remplissage automatique ──
+                const SizedBox(height: Gap.xxl),
+                const SectionLabel('Remplissage automatique'),
+                const AutofillSettingCard(),
+
+                // ── Verrouillage ──
+                const SizedBox(height: Gap.xxl),
+                const SectionLabel('Verrouillage'),
+                const _LockSection(),
+
+                // ── Transfert ──
+                const SizedBox(height: Gap.xxl),
+                const SectionLabel('Sauvegarde et transfert'),
+                HairlineCard(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.download_outlined),
+                        title: const Text('Importer un coffre'),
+                        subtitle: const Text(
+                          'Bitwarden, KeePass, Chrome, LastPass, 1Password…',
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ImportScreen(),
+                          ),
+                        ),
+                      ),
+                      Divider(height: 1, color: c.hairline),
+                      ListTile(
+                        leading: const Icon(Icons.upload_outlined),
+                        title: const Text('Exporter le coffre'),
+                        subtitle: const Text(
+                          'Sauvegarde chiffrée, ou export en clair pour migrer',
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ExportScreen(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── Apparence ──
+                const SizedBox(height: Gap.xxl),
+                const SectionLabel('Apparence'),
+                HairlineCard(
+                  padding: EdgeInsets.zero,
+                  // La valeur et le rappel sont désormais portés par l'ancêtre
+                  // RadioGroup, plus par chaque tuile.
+                  child: RadioGroup<ThemeMode>(
+                    groupValue: settings.themeMode,
+                    onChanged: (v) {
+                      if (v != null) settings.setThemeMode(v);
+                    },
+                    child: Column(
+                      children: [
+                        for (final mode in ThemeMode.values)
+                          RadioListTile<ThemeMode>(
+                            value: mode,
+                            title: Text(switch (mode) {
+                              ThemeMode.system => 'Suivre le système',
+                              ThemeMode.light => 'Clair',
+                              ThemeMode.dark => 'Sombre',
+                            }),
+                          ),
+                      ],
                     ),
-                  ],
+                  ),
+                ),
+
+                // ── Chiffrement ──
+                const SizedBox(height: Gap.xxl),
+                const SectionLabel('Chiffrement'),
+                HairlineCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.memory_rounded, size: 17, color: c.accent),
+                          const SizedBox(width: Gap.sm),
+                          Expanded(
+                            child: Text(
+                              profile?.kdf.label ?? '—',
+                              style: text.bodyMedium?.copyWith(
+                                color: c.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: Gap.sm),
+                      Row(
+                        children: [
+                          Icon(Icons.lock_rounded, size: 17, color: c.accent),
+                          const SizedBox(width: Gap.sm),
+                          Expanded(
+                            child: Text(
+                              'AES-256-GCM par élément',
+                              style: text.bodyMedium?.copyWith(
+                                color: c.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: Gap.md),
+                      Text(
+                        'La clé est dérivée sur cet appareil et n’en sort jamais. Le '
+                        'serveur ne stocke que des blobs qu’il ne peut pas ouvrir.',
+                        style: text.bodySmall?.copyWith(color: c.textTertiary),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── Sécurité du compte ──
+                const SizedBox(height: Gap.xxl),
+                const SectionLabel('Sécurité du compte'),
+                HairlineCard(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.password_rounded),
+                        title: const Text('Changer le mot de passe maître'),
+                        subtitle: const Text(
+                          'Réenveloppe la clé, sans rechiffrer le coffre',
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => const _ChangePasswordSheet(),
+                        ),
+                      ),
+                      Divider(height: 1, color: c.hairline),
+                      ListTile(
+                        leading: const Icon(Icons.devices_rounded),
+                        title: const Text('Appareils connectés'),
+                        subtitle: const Text('Voir et révoquer les sessions'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => const _SessionsSheet(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── Actions dangereuses ──
+                const SizedBox(height: Gap.giant),
+                OutlinedButton.icon(
+                  onPressed: () => repo.lock(),
+                  icon: Icon(
+                    Icons.lock_outline_rounded,
+                    size: 20,
+                    color: c.warning,
+                  ),
+                  label: Text(
+                    'Verrouiller',
+                    style: TextStyle(color: c.warning),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: c.warning.withValues(alpha: 0.5)),
+                  ),
                 ),
                 const SizedBox(height: Gap.md),
-                Text(
-                  'La clé est dérivée sur cet appareil et n’en sort jamais. Le '
-                  'serveur ne stocke que des blobs qu’il ne peut pas ouvrir.',
-                  style: text.bodySmall?.copyWith(color: c.textTertiary),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    // Le raccourci biométrique repose sur ce jeton : il part avec lui.
+                    await context.read<BiometricUnlockStore>().disable();
+                    if (!context.mounted) return;
+                    await settings.setBiometricUnlock(false);
+                    if (!context.mounted) return;
+                    try {
+                      await repo.logout();
+                    } on ApiFailure catch (e) {
+                      if (context.mounted) {
+                        AppFeedback.failure(context, e.message);
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.logout_rounded, size: 20),
+                  label: const Text('Se déconnecter de cet appareil'),
                 ),
-              ],
-            ),
-          ),
-
-          // ── Sécurité du compte ──
-          const SizedBox(height: Gap.xxl),
-          const SectionLabel('Sécurité du compte'),
-          HairlineCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.password_rounded),
-                  title: const Text('Changer le mot de passe maître'),
-                  subtitle: const Text(
-                    'Réenveloppe la clé, sans rechiffrer le coffre',
-                  ),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => showModalBottomSheet(
+                const SizedBox(height: Gap.md),
+                OutlinedButton.icon(
+                  onPressed: () => showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
-                    builder: (_) => const _ChangePasswordSheet(),
+                    builder: (_) => const _DeleteVaultSheet(),
+                  ),
+                  icon: Icon(
+                    Icons.delete_forever_rounded,
+                    size: 20,
+                    color: c.danger,
+                  ),
+                  label: Text(
+                    'Supprimer le coffre',
+                    style: TextStyle(color: c.danger),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: c.danger.withValues(alpha: 0.5)),
                   ),
                 ),
-                Divider(height: 1, color: c.hairline),
-                ListTile(
-                  leading: const Icon(Icons.devices_rounded),
-                  title: const Text('Appareils connectés'),
-                  subtitle: const Text('Voir et révoquer les sessions'),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => const _SessionsSheet(),
+
+                const SizedBox(height: Gap.giant),
+                Center(
+                  child: Text(
+                    'Coffort · coffre zero-knowledge',
+                    style: text.bodySmall?.copyWith(
+                      color: c.textTertiary,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               ],
-            ),
-          ),
-
-          // ── Actions dangereuses ──
-          const SizedBox(height: Gap.giant),
-          OutlinedButton.icon(
-            onPressed: () => repo.lock(),
-            icon: Icon(Icons.lock_outline_rounded, size: 20, color: c.warning),
-            label: Text('Verrouiller', style: TextStyle(color: c.warning)),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: c.warning.withValues(alpha: 0.5)),
-            ),
-          ),
-          const SizedBox(height: Gap.md),
-          OutlinedButton.icon(
-            onPressed: () async {
-              // Le raccourci biométrique repose sur ce jeton : il part avec lui.
-              await context.read<BiometricUnlockStore>().disable();
-              if (!context.mounted) return;
-              await settings.setBiometricUnlock(false);
-              if (!context.mounted) return;
-              try {
-                await repo.logout();
-              } on ApiFailure catch (e) {
-                if (context.mounted) AppFeedback.failure(context, e.message);
-              }
-            },
-            icon: const Icon(Icons.logout_rounded, size: 20),
-            label: const Text('Se déconnecter de cet appareil'),
-          ),
-          const SizedBox(height: Gap.md),
-          OutlinedButton.icon(
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              builder: (_) => const _DeleteVaultSheet(),
-            ),
-            icon: Icon(Icons.delete_forever_rounded, size: 20, color: c.danger),
-            label: Text('Supprimer le coffre', style: TextStyle(color: c.danger)),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: c.danger.withValues(alpha: 0.5)),
-            ),
-          ),
-
-          const SizedBox(height: Gap.giant),
-          Center(
-            child: Text(
-              'Coffort · coffre zero-knowledge',
-              style: text.bodySmall?.copyWith(color: c.textTertiary, fontSize: 11),
             ),
           ),
         ],
@@ -437,8 +476,10 @@ class _LockSectionState extends State<_LockSection> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                     const SizedBox(width: Gap.md),
-                    Text('Vérification de la biométrie…',
-                        style: text.bodySmall),
+                    Text(
+                      'Vérification de la biométrie…',
+                      style: text.bodySmall,
+                    ),
                   ],
                 ),
               );
@@ -450,8 +491,11 @@ class _LockSectionState extends State<_LockSection> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.fingerprint_rounded,
-                        size: 18, color: c.textTertiary),
+                    Icon(
+                      Icons.fingerprint_rounded,
+                      size: 18,
+                      color: c.textTertiary,
+                    ),
                     const SizedBox(width: Gap.md),
                     Expanded(
                       child: Text(
@@ -486,8 +530,10 @@ class _LockSectionState extends State<_LockSection> {
                         'rooté peut toutefois la lire sans passer la '
                         'biométrie : c’est une limite de la brique de stockage '
                         'utilisée, pas un oubli.',
-                        style: text.bodySmall
-                            ?.copyWith(color: c.textTertiary, fontSize: 12),
+                        style: text.bodySmall?.copyWith(
+                          color: c.textTertiary,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -505,7 +551,8 @@ class _LockSectionState extends State<_LockSection> {
       context: context,
       builder: (ctx) => _OptionSheet<AutoLockDelay>(
         title: 'Verrouillage par inactivité',
-        note: 'Le coffre se referme après ce délai sans interaction. La clé est '
+        note:
+            'Le coffre se referme après ce délai sans interaction. La clé est '
             'alors effacée de la mémoire.',
         options: AutoLockDelay.values,
         selected: settings.autoLock,
@@ -520,7 +567,8 @@ class _LockSectionState extends State<_LockSection> {
       context: context,
       builder: (ctx) => _OptionSheet<ClipboardClearDelay>(
         title: 'Effacement du presse-papiers',
-        note: 'Sur Android, le presse-papiers est lisible par toute application '
+        note:
+            'Sur Android, le presse-papiers est lisible par toute application '
             'installée, et son contenu y reste jusqu’au prochain remplacement.',
         options: ClipboardClearDelay.values,
         selected: settings.clipboardClear,
@@ -618,7 +666,11 @@ class _OptionSheet<T> extends StatelessWidget {
                             ),
                           ),
                           if (option == selected)
-                            Icon(Icons.check_rounded, size: 18, color: c.primary),
+                            Icon(
+                              Icons.check_rounded,
+                              size: 18,
+                              color: c.primary,
+                            ),
                         ],
                       ),
                     ),
@@ -631,7 +683,6 @@ class _OptionSheet<T> extends StatelessWidget {
     );
   }
 }
-
 
 /// Changement du mot de passe maître. La clé du coffre est réenveloppée, aucun
 /// élément n'est rechiffré : l'opération est instantanée quel que soit le volume.
@@ -653,9 +704,11 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
   @override
   void initState() {
     super.initState();
-    _next.addListener(() => setState(() {
-          _strength = PasswordStrengthEvaluator.evaluate(_next.text);
-        }));
+    _next.addListener(
+      () => setState(() {
+        _strength = PasswordStrengthEvaluator.evaluate(_next.text);
+      }),
+    );
   }
 
   @override
@@ -679,9 +732,9 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
     });
     try {
       await context.read<VaultRepository>().changeMasterPassword(
-            currentPassword: _current.text,
-            newPassword: _next.text,
-          );
+        currentPassword: _current.text,
+        newPassword: _next.text,
+      );
       if (!mounted) return;
       // Le serveur a révoqué toutes les sessions : le jeton conservé derrière la
       // biométrie ne vaut plus rien, et la clé stockée ouvrirait un coffre dont
@@ -694,7 +747,9 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
       // d'elle-même dès que cette feuille se referme.
       Navigator.of(context).pop();
     } on WrongMasterPasswordException {
-      if (mounted) setState(() => _error = 'Mot de passe maître actuel incorrect');
+      if (mounted) {
+        setState(() => _error = 'Mot de passe maître actuel incorrect');
+      }
     } on ApiFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -759,7 +814,8 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                 style: SecretText.of(context),
                 decoration: InputDecoration(
                   labelText: 'Confirmer',
-                  errorText: _confirm.text.isEmpty || _confirm.text == _next.text
+                  errorText:
+                      _confirm.text.isEmpty || _confirm.text == _next.text
                       ? null
                       : 'Les deux saisies diffèrent',
                 ),
@@ -884,8 +940,9 @@ class _SessionsSheetState extends State<_SessionsSheet> {
                             ? (snapshot.error as ApiFailure).message
                             : 'Impossible de lire les sessions',
                         onRetry: () => setState(() {
-                          _future =
-                              context.read<VaultRepository>().listSessions();
+                          _future = context
+                              .read<VaultRepository>()
+                              .listSessions();
                         }),
                       );
                     }
@@ -901,7 +958,8 @@ class _SessionsSheetState extends State<_SessionsSheet> {
                     return ListView.separated(
                       shrinkWrap: true,
                       itemCount: sessions.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: Gap.sm),
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: Gap.sm),
                       itemBuilder: (context, i) =>
                           _SessionRow(session: sessions[i]),
                     );
@@ -926,8 +984,8 @@ class _SessionsSheetState extends State<_SessionsSheet> {
                       others == 0
                           ? 'Aucun autre appareil connecté'
                           : 'Déconnecter les $others autre'
-                              '${others > 1 ? 's' : ''} appareil'
-                              '${others > 1 ? 's' : ''}',
+                                '${others > 1 ? 's' : ''} appareil'
+                                '${others > 1 ? 's' : ''}',
                     ),
                   );
                 },
@@ -972,8 +1030,10 @@ class _SessionRow extends StatelessWidget {
                     if (session.expiresAt != null)
                       'expire le ${_shortDate(session.expiresAt!)}',
                   ].join(' · '),
-                  style: text.bodySmall
-                      ?.copyWith(color: c.textTertiary, fontSize: 11),
+                  style: text.bodySmall?.copyWith(
+                    color: c.textTertiary,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -1049,7 +1109,8 @@ class _DeleteVaultSheetState extends State<_DeleteVaultSheet> {
     final c = context.palette;
     final text = Theme.of(context).textTheme;
     final repo = context.read<VaultRepository>();
-    final canSubmit = !_busy &&
+    final canSubmit =
+        !_busy &&
         _password.text.isNotEmpty &&
         _confirmWord.text.trim().toUpperCase() == _requiredWord;
 
@@ -1112,7 +1173,9 @@ class _DeleteVaultSheetState extends State<_DeleteVaultSheet> {
               FilledButton(
                 onPressed: canSubmit ? _submit : null,
                 style: FilledButton.styleFrom(backgroundColor: c.danger),
-                child: Text(_busy ? 'Suppression…' : 'Supprimer définitivement'),
+                child: Text(
+                  _busy ? 'Suppression…' : 'Supprimer définitivement',
+                ),
               ),
             ],
           ),

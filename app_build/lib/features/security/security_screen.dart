@@ -89,52 +89,65 @@ class _SecurityScreenState extends State<SecurityScreen> {
     final c = context.palette;
     final text = Theme.of(context).textTheme;
     final repo = context.watch<VaultRepository>();
-    final report = VaultHealth.analyse(
-      repo.items,
-      breachCounts: _breachCounts,
-    );
+    final report = VaultHealth.analyse(repo.items, breachCounts: _breachCounts);
 
     return Scaffold(
       backgroundColor: c.background,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xl, Gap.xl, 120),
+      // Titre figé, contenu défilant : on doit savoir où l'on se trouve sans
+      // avoir à remonter en haut de la page.
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Sécurité', style: text.headlineMedium),
-          const SizedBox(height: Gap.xxs),
-          Text(
-            'Analyse faite sur cet appareil, sur le coffre déchiffré.',
-            style: text.bodySmall?.copyWith(color: c.textTertiary),
-          ),
-          const SizedBox(height: Gap.xxl),
-
-          _ScoreCard(report: report),
-
-          const SizedBox(height: Gap.lg),
-          _BreachCheckCard(
-            checked: _breachCounts != null,
-            checking: _checking,
-            progress: _checkProgress,
-            error: _checkError,
-            exposedCount: report.countOf(HealthIssue.breached),
-            onCheck: _checking ? null : _checkBreaches,
-          ),
-
-          const SizedBox(height: Gap.lg),
-          const _DuplicateCard(),
-
-          if (report.totalAnalysed == 0) ...[
-            const SizedBox(height: Gap.giant),
-            const EmptyState(
-              icon: Icons.health_and_safety_outlined,
-              title: 'Rien à analyser',
-              message: 'Ajoutez des identifiants : l’analyse porte sur les mots '
-                  'de passe, pas sur les notes ou les cartes.',
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gap.xl, Gap.xl, Gap.xl, Gap.xxl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Sécurité', style: text.headlineMedium),
+                const SizedBox(height: Gap.xxs),
+                Text(
+                  'Analyse faite sur cet appareil, sur le coffre déchiffré.',
+                  style: text.bodySmall?.copyWith(color: c.textTertiary),
+                ),
+              ],
             ),
-          ] else ...[
-            const SizedBox(height: Gap.xxl),
-            for (final issue in HealthIssue.values)
-              _IssueSection(issue: issue, report: report),
-          ],
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, 120),
+              children: [
+                _ScoreCard(report: report),
+
+                const SizedBox(height: Gap.lg),
+                _BreachCheckCard(
+                  checked: _breachCounts != null,
+                  checking: _checking,
+                  progress: _checkProgress,
+                  error: _checkError,
+                  exposedCount: report.countOf(HealthIssue.breached),
+                  onCheck: _checking ? null : _checkBreaches,
+                ),
+
+                const SizedBox(height: Gap.lg),
+                const _DuplicateCard(),
+
+                if (report.totalAnalysed == 0) ...[
+                  const SizedBox(height: Gap.giant),
+                  const EmptyState(
+                    icon: Icons.health_and_safety_outlined,
+                    title: 'Rien à analyser',
+                    message:
+                        'Ajoutez des identifiants : l’analyse porte sur les mots '
+                        'de passe, pas sur les notes ou les cartes.',
+                  ),
+                ] else ...[
+                  const SizedBox(height: Gap.xxl),
+                  for (final issue in HealthIssue.values)
+                    _IssueSection(issue: issue, report: report),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -169,8 +182,10 @@ class _DuplicateCardState extends State<_DuplicateCard> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Retirer $expected exemplaire'
-            '${expected > 1 ? 's' : ''} en trop ?'),
+        title: Text(
+          'Retirer $expected exemplaire'
+          '${expected > 1 ? 's' : ''} en trop ?',
+        ),
         content: const Text(
           'Un exemplaire de chaque est conservé. Les autres partent à la '
           'corbeille, d’où vous pourrez les restaurer si besoin.',
@@ -235,14 +250,18 @@ class _DuplicateCardState extends State<_DuplicateCard> {
       return HairlineCard(
         child: Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded, size: 18, color: c.success),
+            Icon(
+              Icons.check_circle_outline_rounded,
+              size: 18,
+              color: c.success,
+            ),
             const SizedBox(width: Gap.md),
             Expanded(
               child: Text(
                 _trashed == null
                     ? 'Aucun doublon : chaque entrée du coffre est unique.'
                     : '$_trashed exemplaire${_trashed! > 1 ? 's' : ''} mis à la '
-                        'corbeille. Plus aucun doublon.',
+                          'corbeille. Plus aucun doublon.',
                 style: text.bodyMedium,
               ),
             ),
@@ -290,9 +309,11 @@ class _DuplicateCardState extends State<_DuplicateCard> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.cleaning_services_outlined, size: 18),
-              label: Text(_busy
-                  ? 'Nettoyage… ${_progress ?? ""}'
-                  : 'Retirer les doublons'),
+              label: Text(
+                _busy
+                    ? 'Nettoyage… ${_progress ?? ""}'
+                    : 'Retirer les doublons',
+              ),
             ),
           ),
         ],
@@ -330,21 +351,17 @@ class _BreachCheckCard extends StatelessWidget {
 
     final (tint, icon, title) = switch ((checked, exposedCount)) {
       (true, 0) => (
-          c.success,
-          Icons.verified_user_outlined,
-          'Aucun mot de passe dans les fuites connues',
-        ),
+        c.success,
+        Icons.verified_user_outlined,
+        'Aucun mot de passe dans les fuites connues',
+      ),
       (true, _) => (
-          c.danger,
-          Icons.report_gmailerrorred_rounded,
-          '$exposedCount mot${exposedCount > 1 ? 's' : ''} de passe exposé'
-              '${exposedCount > 1 ? 's' : ''}',
-        ),
-      _ => (
-          c.accent,
-          Icons.cloud_outlined,
-          'Vérifier les fuites de données',
-        ),
+        c.danger,
+        Icons.report_gmailerrorred_rounded,
+        '$exposedCount mot${exposedCount > 1 ? 's' : ''} de passe exposé'
+            '${exposedCount > 1 ? 's' : ''}',
+      ),
+      _ => (c.accent, Icons.cloud_outlined, 'Vérifier les fuites de données'),
     };
 
     return HairlineCard(
@@ -370,13 +387,13 @@ class _BreachCheckCard extends StatelessWidget {
           Text(
             checked
                 ? 'Comparaison faite avec la base Have I Been Pwned. Un mot de '
-                    'passe absent n’est pas garanti sûr : il n’est simplement '
-                    'pas dans les fuites répertoriées.'
+                      'passe absent n’est pas garanti sûr : il n’est simplement '
+                      'pas dans les fuites répertoriées.'
                 : 'Coffort n’envoie que les 5 premiers caractères de '
-                    'l’empreinte SHA-1 de chaque mot de passe. Le service '
-                    'renvoie environ 800 empreintes commençant pareil, et la '
-                    'comparaison se fait ici. Ni le mot de passe ni son '
-                    'empreinte complète ne quittent l’appareil.',
+                      'l’empreinte SHA-1 de chaque mot de passe. Le service '
+                      'renvoie environ 800 empreintes commençant pareil, et la '
+                      'comparaison se fait ici. Ni le mot de passe ni son '
+                      'empreinte complète ne quittent l’appareil.',
             style: text.bodySmall?.copyWith(color: c.textTertiary),
           ),
           if (progress != null) ...[
@@ -442,10 +459,7 @@ class _ScoreCard extends StatelessWidget {
         borderRadius: Radii.all(Radii.lg),
         border: Border.all(color: tint.withValues(alpha: 0.34)),
         gradient: LinearGradient(
-          colors: [
-            tint.withValues(alpha: 0.12),
-            tint.withValues(alpha: 0.03),
-          ],
+          colors: [tint.withValues(alpha: 0.12), tint.withValues(alpha: 0.03)],
         ),
       ),
       child: Row(
@@ -460,15 +474,15 @@ class _ScoreCard extends StatelessWidget {
                   report.isClean
                       ? 'Aucun problème détecté'
                       : '${report.totalProblems} élément'
-                          '${report.totalProblems > 1 ? 's' : ''} à revoir',
+                            '${report.totalProblems > 1 ? 's' : ''} à revoir',
                   style: text.titleLarge,
                 ),
                 const SizedBox(height: Gap.xs),
                 Text(
                   report.isClean
                       ? '${report.totalAnalysed} mot'
-                          '${report.totalAnalysed > 1 ? 's' : ''} de passe '
-                          'analysé${report.totalAnalysed > 1 ? 's' : ''}.'
+                            '${report.totalAnalysed > 1 ? 's' : ''} de passe '
+                            'analysé${report.totalAnalysed > 1 ? 's' : ''}.'
                       : report.summaryLine,
                   style: text.bodySmall?.copyWith(color: c.textSecondary),
                 ),
@@ -517,17 +531,15 @@ class _ScoreRing extends StatelessWidget {
             children: [
               Text(
                 '$score',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: color,
-                      fontSize: 22,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(color: color, fontSize: 22),
               ),
               Text(
                 '/100',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelSmall
-                    ?.copyWith(fontSize: 9, letterSpacing: 0),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(fontSize: 9, letterSpacing: 0),
               ),
             ],
           ),
@@ -563,7 +575,8 @@ class _IssueSection extends StatelessWidget {
                   HealthIssue.weak => Icons.lock_open_rounded,
                   HealthIssue.reused => Icons.content_copy_rounded,
                   HealthIssue.old => Icons.history_rounded,
-                  HealthIssue.empty => Icons.no_encryption_gmailerrorred_rounded,
+                  HealthIssue.empty =>
+                    Icons.no_encryption_gmailerrorred_rounded,
                 },
                 size: 18,
                 color: c.danger,
@@ -599,7 +612,11 @@ class _IssueSection extends StatelessWidget {
                 onCopyPassword: () {
                   final data = health.item.data;
                   if (data is LoginData && data.password.isNotEmpty) {
-                    AppFeedback.copyValue(context, data.password, 'Mot de passe');
+                    AppFeedback.copyValue(
+                      context,
+                      data.password,
+                      'Mot de passe',
+                    );
                   }
                 },
               ),
