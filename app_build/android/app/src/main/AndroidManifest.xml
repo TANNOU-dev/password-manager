@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Biométrie (empreinte digitale) -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -30,6 +31,21 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Le greffon d'autofill code son libellé en dur : « Flutter Autofill
+             Service ». Dans la liste des services de saisie automatique
+             d'Android, l'utilisateur voyait donc un nom générique, impossible à
+             rattacher à cette app — et à côté de Bitwarden ou Google, un nom
+             qu'on ne reconnaît pas est un nom qu'on ne choisit pas.
+
+             `tools:replace` écrase la valeur du greffon au moment de la fusion
+             des manifestes. Le nom de la classe doit rester exactement celui
+             qu'il déclare, sans quoi on ajouterait un second service au lieu
+             d'amender le sien. -->
+        <service
+            android:name="com.keevault.flutter_autofill_service.FlutterAutofillService"
+            android:label="Coffort"
+            tools:replace="android:label" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
