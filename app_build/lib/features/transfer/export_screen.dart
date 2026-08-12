@@ -96,7 +96,7 @@ class _ExportScreenState extends State<ExportScreen> {
 
       final stamp = DateTime.now().toIso8601String().split('T').first;
       final suffix = _kind == _ExportKind.encrypted ? 'chiffre' : 'EN-CLAIR';
-      final name = 'passvault-$suffix-$stamp.$extension';
+      final name = 'coffort-$suffix-$stamp.$extension';
 
       await _deliver(content, name);
       if (!mounted) return;

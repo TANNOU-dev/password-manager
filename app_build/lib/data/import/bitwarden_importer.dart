@@ -1,12 +1,13 @@
 import 'dart:convert';
 
+import '../../core/utils/ssh_key.dart';
 import '../models/cipher.dart';
 import 'import_result.dart';
 
 /// Import d'un export Bitwarden JSON **non chiffré**.
 ///
-/// Le format est stable et couvre les mêmes quatre types d'éléments que
-/// PassVault, donc c'est le chemin de migration qui perd le moins d'information :
+/// Le format est stable et couvre les mêmes cinq types d'éléments que
+/// Coffort, donc c'est le chemin de migration qui perd le moins d'information :
 /// URIs multiples, TOTP, champs personnalisés, historique des mots de passe et
 /// dossiers passent tous.
 ///
@@ -53,7 +54,7 @@ class BitwardenImporter extends VaultImporter {
     if (root['encrypted'] == true) {
       throw const ImportFormatException(
         'Cet export Bitwarden est chiffré. Réexportez-le en JSON non chiffré '
-        'depuis Bitwarden — PassVault le rechiffrera avec votre propre clé.',
+        'depuis Bitwarden — Coffort le rechiffrera avec votre propre clé.',
       );
     }
 
@@ -204,6 +205,26 @@ class BitwardenImporter extends VaultImporter {
           state: str(m['state']),
           postalCode: str(m['postalCode']),
           country: str(m['country']),
+          notes: notes,
+          fields: fields,
+        );
+
+      case 5: // clé SSH
+        final ssh = raw['sshKey'];
+        final m = ssh is Map<String, dynamic> ? ssh : const {};
+        final publicKey = str(m['publicKey']);
+        data = SshKeyData(
+          name: name,
+          privateKey: SshKeys.normalizePrivateKey(
+            m['privateKey']?.toString() ?? '',
+          ),
+          publicKey: publicKey,
+          // On préfère l'empreinte recalculée à celle du fichier : elle est
+          // vérifiable, alors que celle du fichier est une affirmation. Si la
+          // clé publique est illisible, on retombe sur la valeur fournie plutôt
+          // que de perdre l'information.
+          keyFingerprint: SshKeys.fingerprintOfPublicKey(publicKey) ??
+              str(m['keyFingerprint']),
           notes: notes,
           fields: fields,
         );

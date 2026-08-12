@@ -14,7 +14,7 @@ import '../../data/vault_repository.dart';
 import '../../widgets/common.dart';
 import 'uri_matcher.dart';
 
-/// Écran affiché quand Android demande un identifiant à PassVault.
+/// Écran affiché quand Android demande un identifiant à Coffort.
 ///
 /// Ce n'est pas l'app normale : le processus est lancé par le service de
 /// remplissage, sur un point d'entrée séparé, et il n'a qu'une chose à faire —
@@ -334,7 +334,7 @@ class _UnlockBlock extends StatelessWidget {
       return const EmptyState(
         icon: Icons.lock_outline_rounded,
         title: 'Coffre non configuré',
-        message: 'Ouvrez PassVault une première fois pour créer ou '
+        message: 'Ouvrez Coffort une première fois pour créer ou '
             'déverrouiller votre coffre.',
       );
     }

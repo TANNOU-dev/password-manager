@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:password_manager/core/design/app_theme.dart';
 import 'package:password_manager/data/api/api_client.dart';
-import 'package:password_manager/data/api/passvault_api.dart';
+import 'package:password_manager/data/api/coffort_api.dart';
 import 'package:password_manager/data/vault_repository.dart';
 import 'package:password_manager/features/vault/vault_screen.dart';
 import 'package:password_manager/widgets/vault_item_tile.dart';
@@ -17,7 +17,7 @@ import 'package:password_manager/data/models/cipher.dart';
 /// Dépôt pointé sur une adresse morte. Aucun appel ne doit aboutir, et c'est
 /// voulu : un test qui toucherait un vrai serveur ne serait plus un test unitaire.
 VaultRepository _offlineRepo() => VaultRepository(
-      api: PassvaultApi(ApiClient(baseUrl: 'http://127.0.0.1:1')),
+      api: CoffortApi(ApiClient(baseUrl: 'http://127.0.0.1:1')),
       deviceName: 'test',
     );
 

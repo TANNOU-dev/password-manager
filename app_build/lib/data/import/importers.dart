@@ -48,7 +48,7 @@ ParsedImport parseImport(String content, {String? fileName}) {
   final importer = detectImporter(content, fileName: fileName);
   if (importer == null) {
     throw const ImportFormatException(
-      'Format non reconnu. PassVault lit les exports Bitwarden (JSON), '
+      'Format non reconnu. Coffort lit les exports Bitwarden (JSON), '
       'KeePass (XML) et les CSV de Chrome, Firefox, LastPass, 1Password, '
       'KeePassXC et Dashlane.',
     );

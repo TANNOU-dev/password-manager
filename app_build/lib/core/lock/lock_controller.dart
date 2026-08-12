@@ -48,6 +48,37 @@ class LockController with WidgetsBindingObserver {
   /// écoulé pendant une suspension, que le minuteur n'a pas pu compter.
   DateTime? _backgroundedAt;
 
+  /// Nombre d'excursions volontaires en cours (sélecteur de fichiers, réglages
+  /// système). Un compteur et non un booléen : deux excursions imbriquées ne
+  /// doivent pas voir la première réarmer le verrou en se terminant.
+  int _excursions = 0;
+
+  bool get _inExcursion => _excursions > 0;
+
+  /// Exécute une action qui fait volontairement quitter l'app, sans que le
+  /// passage en arrière-plan verrouille le coffre.
+  ///
+  /// Sans ça, choisir un fichier à importer verrouillait le coffre pendant qu'on
+  /// le choisissait : l'utilisateur revenait sur un écran devenu inerte, et
+  /// l'import échouait sans rien dire. Le cas est le même pour l'écran de
+  /// réglages d'autofill d'Android.
+  ///
+  /// Ce que ça ne suspend pas : **le verrouillage par inactivité**. Le minuteur
+  /// continue de courir, et le rattrapage au retour reste en place. Une
+  /// excursion qui s'éternise finit donc quand même verrouillée — on ne fait
+  /// qu'éviter le verrouillage réflexe dû au passage en arrière-plan.
+  Future<T> duringExcursion<T>(Future<T> Function() action) async {
+    _excursions++;
+    try {
+      return await action();
+    } finally {
+      _excursions--;
+      // Le retour compte comme une activité : sans ça, le temps passé dans le
+      // sélecteur serait décompté du délai d'inactivité.
+      registerActivity();
+    }
+  }
+
   /// À appeler à chaque interaction. Branché sur les événements de pointeur au
   /// sommet de l'arbre, pas sur chaque widget.
   void registerActivity() {
@@ -104,7 +135,8 @@ class LockController with WidgetsBindingObserver {
       case AppLifecycleState.hidden:
       case AppLifecycleState.detached:
         _backgroundedAt = _now();
-        if (_settings.lockOnBackground || _settings.autoLock.isImmediate) {
+        if (!_inExcursion &&
+            (_settings.lockOnBackground || _settings.autoLock.isImmediate)) {
           _vault.lock();
         }
       case AppLifecycleState.resumed:

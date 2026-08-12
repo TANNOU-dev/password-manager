@@ -10,7 +10,11 @@ enum CipherType {
   login(1, 'Identifiant'),
   secureNote(2, 'Note sécurisée'),
   card(3, 'Carte bancaire'),
-  identity(4, 'Identité');
+  identity(4, 'Identité'),
+  // Le numéro 5 n'est pas arbitraire : c'est celui qu'utilise Bitwarden pour ce
+  // type. S'y tenir garde la porte ouverte à un import depuis leur export, et
+  // évite qu'un même chiffre désigne deux choses selon l'application.
+  sshKey(5, 'Clé SSH');
 
   const CipherType(this.wire, this.label);
   final int wire;
@@ -164,6 +168,7 @@ sealed class CipherData {
       CipherType.secureNote => SecureNoteData.fromJson(json),
       CipherType.card => CardData.fromJson(json),
       CipherType.identity => IdentityData.fromJson(json),
+      CipherType.sshKey => SshKeyData.fromJson(json),
     };
   }
 
@@ -355,6 +360,85 @@ class SecureNoteData extends CipherData {
   }) =>
       SecureNoteData(
         name: name ?? this.name,
+        notes: notes ?? this.notes,
+        fields: fields ?? this.fields,
+      );
+}
+
+/// Une paire de clés SSH.
+///
+/// Les trois champs sont ceux de Bitwarden, aux mêmes noms : `privateKey`,
+/// `publicKey`, `keyFingerprint`.
+///
+/// L'empreinte est stockée alors qu'elle se recalcule depuis la clé publique.
+/// C'est délibéré : elle sert à comparer d'un coup d'œil avec ce qu'affiche un
+/// serveur au premier contact, et on ne veut pas que ce soit l'application qui
+/// la recalcule au moment de la comparaison — si elle se trompait, elle
+/// afficherait deux fois la même erreur et la vérification ne prouverait rien.
+class SshKeyData extends CipherData {
+  @override
+  final String name;
+  final String privateKey;
+  final String publicKey;
+  final String keyFingerprint;
+  @override
+  final String notes;
+  @override
+  final List<CustomField> fields;
+
+  const SshKeyData({
+    required this.name,
+    this.privateKey = '',
+    this.publicKey = '',
+    this.keyFingerprint = '',
+    this.notes = '',
+    this.fields = const [],
+  });
+
+  @override
+  CipherType get type => CipherType.sshKey;
+
+  factory SshKeyData.fromJson(Map<String, dynamic> json) => SshKeyData(
+        name: (json['name'] ?? '') as String,
+        privateKey: (json['privateKey'] ?? '') as String,
+        publicKey: (json['publicKey'] ?? '') as String,
+        keyFingerprint: (json['keyFingerprint'] ?? '') as String,
+        notes: (json['notes'] ?? '') as String,
+        fields: CipherData._fieldsOf(json),
+      );
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'privateKey': privateKey,
+        'publicKey': publicKey,
+        'keyFingerprint': keyFingerprint,
+        'notes': notes,
+        'fields': fields.map((f) => f.toJson()).toList(),
+      };
+
+  /// La clé privée n'entre pas dans l'index de recherche.
+  ///
+  /// Chercher « BEGIN » ferait remonter toutes les clés du coffre, ce qui n'est
+  /// d'aucune utilité, et le secret n'a rien à faire dans une chaîne qu'on
+  /// promène à chaque frappe.
+  @override
+  String get searchHaystack =>
+      '$name $publicKey $keyFingerprint $notes'.toLowerCase();
+
+  SshKeyData copyWith({
+    String? name,
+    String? privateKey,
+    String? publicKey,
+    String? keyFingerprint,
+    String? notes,
+    List<CustomField>? fields,
+  }) =>
+      SshKeyData(
+        name: name ?? this.name,
+        privateKey: privateKey ?? this.privateKey,
+        publicKey: publicKey ?? this.publicKey,
+        keyFingerprint: keyFingerprint ?? this.keyFingerprint,
         notes: notes ?? this.notes,
         fields: fields ?? this.fields,
       );
@@ -682,6 +766,23 @@ class CipherItem {
   /// Sérialisation du contenu à chiffrer. Volontairement séparée des métadonnées
   /// en clair : ce qui sort d'ici est ce que le serveur ne verra jamais.
   String encodeData() => jsonEncode(data.toJson());
+
+  /// Empreinte du **contenu**, pour reconnaître deux entrées identiques.
+  ///
+  /// N'entrent en compte que le type et les données. Sont volontairement
+  /// exclus : l'identifiant, le dossier, le favori et les horodatages. Deux
+  /// lignes d'un même export qui décrivent le même compte sont des doublons,
+  /// même si l'une a été rangée dans un dossier et pas l'autre.
+  ///
+  /// Les clés du JSON sont triées, sinon deux entrées identiques écrites dans
+  /// un ordre différent passeraient pour distinctes.
+  String get contentFingerprint {
+    final json = data.toJson();
+    final sorted = <String, dynamic>{
+      for (final key in json.keys.toList()..sort()) key: json[key],
+    };
+    return '${type.wire}|${jsonEncode(sorted)}';
+  }
 }
 
 /// Dossier. Son nom est chiffré côté client comme le reste.

@@ -38,7 +38,7 @@ class _GalleryAppState extends State<GalleryApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PassVault — maquette',
+      title: 'Coffort — maquette',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
@@ -205,7 +205,7 @@ class _GalleryBar extends StatelessWidget {
             child: Icon(Icons.shield_rounded, size: 19, color: c.onPrimary),
           ),
           const SizedBox(width: Gap.md),
-          Text('PassVault', style: text.titleLarge),
+          Text('Coffort', style: text.titleLarge),
           const SizedBox(width: Gap.sm),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: Gap.sm, vertical: 2),

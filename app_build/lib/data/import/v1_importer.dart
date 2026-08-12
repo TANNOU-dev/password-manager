@@ -4,7 +4,7 @@ import '../models/cipher.dart';
 import 'csv_table.dart';
 import 'import_result.dart';
 
-/// Import des exports PassVault v1, pour la migration vers le coffre chiffré.
+/// Import des exports Coffort v1, pour la migration vers le coffre chiffré.
 ///
 /// La v1 ne connaissait qu'un type d'entrée : site / e-mail / mot de passe /
 /// note. Chaque entrée devient donc un identifiant, avec le site promu en URI
@@ -17,7 +17,7 @@ class V1JsonImporter extends VaultImporter {
   const V1JsonImporter();
 
   @override
-  String get label => 'PassVault v1 (JSON)';
+  String get label => 'Coffort v1 (JSON)';
 
   @override
   List<String> get extensions => const ['json'];
@@ -89,7 +89,7 @@ class V1CsvImporter extends VaultImporter {
   const V1CsvImporter();
 
   @override
-  String get label => 'PassVault v1 (CSV)';
+  String get label => 'Coffort v1 (CSV)';
 
   @override
   List<String> get extensions => const ['csv'];

@@ -45,9 +45,7 @@ const String _authInfo = 'passvault:auth:v1';
 /// étape n'a donc pas besoin d'en apporter un second : elle sépare seulement les
 /// domaines via `info`.
 @visibleForTesting
-const List<int> kHkdfSalt = _hkdfSalt;
-
-const List<int> _hkdfSalt = <int>[
+const List<int> kHkdfSalt = <int>[
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
@@ -214,7 +212,7 @@ class VaultCrypto {
       //
       // La RFC 5869 prescrit exactement ça en l'absence de sel : HashLen octets
       // nuls. On l'écrit explicitement au lieu de dépendre du défaut.
-      nonce: _hkdfSalt,
+      nonce: kHkdfSalt,
       info: utf8.encode(info),
     );
     return SecretKeyData(

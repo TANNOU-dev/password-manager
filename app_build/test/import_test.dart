@@ -348,13 +348,13 @@ void main() {
     });
   });
 
-  group('PassVault v1', () {
+  group('Coffort v1', () {
     test('lit la sortie de export-v1.js', () {
       const source = '{"version":1,"entries":['
           '{"site":"github.com","email":"tannou","password":"hunter2","note":"perso"},'
           '{"site":"Ma banque","email":"a@b.c","password":"s3cr3t","note":""}]}';
       final out = parseImport(source);
-      expect(out.sourceLabel, 'PassVault v1 (JSON)');
+      expect(out.sourceLabel, 'Coffort v1 (JSON)');
       expect(out.count, 2);
       expect(login(byName(out, 'github.com')).uris.single.uri,
           'https://github.com');
@@ -365,7 +365,7 @@ void main() {
     test('lit le tableau nu de l’ancienne app', () {
       const source = '[{"site":"netflix.com","email":"a@b.c","password":"pw"}]';
       final out = parseImport(source);
-      expect(out.sourceLabel, 'PassVault v1 (JSON)');
+      expect(out.sourceLabel, 'Coffort v1 (JSON)');
       expect(out.count, 1);
     });
 
@@ -373,7 +373,7 @@ void main() {
       const source = 'site,email,password,note\n'
           'github.com,tannou,hunter2,perso\n';
       final out = parseImport(source);
-      expect(out.sourceLabel, 'PassVault v1 (CSV)');
+      expect(out.sourceLabel, 'Coffort v1 (CSV)');
       expect(login(out.items.single).password, 'hunter2');
     });
 

@@ -322,8 +322,6 @@ class _UnlockScreenState extends State<UnlockScreen> {
                         ),
                       ],
 
-                      const SizedBox(height: Gap.xl),
-                      _ServerFooter(url: repo.serverUrl),
                     ],
                   ),
                 ),
@@ -439,60 +437,9 @@ class _Brand extends StatelessWidget {
           child: Icon(Icons.shield_rounded, size: 32, color: c.onPrimary),
         ),
         const SizedBox(height: Gap.lg),
-        Text('PassVault', style: text.headlineSmall),
+        Text('Coffort', style: text.headlineSmall),
       ],
     );
   }
 }
 
-/// Rappelle à quel serveur on parle. Sur un coffre auto-hébergé, savoir où
-/// partent ses données n'est pas un détail.
-class _ServerFooter extends StatelessWidget {
-  const _ServerFooter({required this.url});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.palette;
-    final insecure = isInsecureServerUrl(url);
-
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              insecure ? Icons.lock_open_rounded : Icons.dns_outlined,
-              size: 13,
-              color: insecure ? c.warning : c.textTertiary,
-            ),
-            const SizedBox(width: Gap.sm),
-            Flexible(
-              child: Text(
-                url.replaceFirst(RegExp(r'^https?://'), ''),
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: c.textTertiary, fontSize: 12),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        if (insecure) ...[
-          const SizedBox(height: Gap.sm),
-          Text(
-            'Connexion en HTTP : le contenu du coffre reste chiffré, mais '
-            'l’adresse du serveur et vos métadonnées circulent en clair.',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: c.warning, fontSize: 11),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ],
-    );
-  }
-}

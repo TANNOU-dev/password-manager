@@ -12,7 +12,7 @@ import 'import_result.dart';
 /// désigne un champ à masquer.
 ///
 /// La hiérarchie de groupes est aplatie en un seul niveau, séparé par « / » :
-/// PassVault n'a qu'un niveau de dossiers, et perdre le chemin serait pire que
+/// Coffort n'a qu'un niveau de dossiers, et perdre le chemin serait pire que
 /// le concaténer.
 class KeepassXmlImporter extends VaultImporter {
   const KeepassXmlImporter();

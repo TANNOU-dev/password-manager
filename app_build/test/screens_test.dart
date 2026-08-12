@@ -6,7 +6,7 @@ import 'package:password_manager/core/crypto/kdf_params.dart';
 import 'package:password_manager/core/design/app_theme.dart';
 import 'package:password_manager/core/settings/app_settings.dart';
 import 'package:password_manager/data/api/api_client.dart';
-import 'package:password_manager/data/api/passvault_api.dart';
+import 'package:password_manager/data/api/coffort_api.dart';
 import 'package:password_manager/data/models/cipher.dart';
 import 'package:password_manager/data/vault_repository.dart';
 import 'package:password_manager/features/security/security_screen.dart';
@@ -22,7 +22,7 @@ import 'package:password_manager/widgets/vault_item_tile.dart';
 
 const _profile = VaultProfile(
   id: 'u1',
-  email: 'tannou@passvault.test',
+  email: 'tannou@coffort.test',
   kdf: KdfParams.argon2idDefault,
   kdfSalt: '0123456789abcdef0123456789abcdef',
   protectedKey: '1.AAAA',
@@ -94,7 +94,7 @@ Future<VaultRepository> _seeded({
   List<FolderItem> folders = const [],
 }) async {
   final repo = VaultRepository(
-    api: PassvaultApi(ApiClient(baseUrl: 'http://127.0.0.1:1')),
+    api: CoffortApi(ApiClient(baseUrl: 'http://127.0.0.1:1')),
     deviceName: 'test',
   );
   await repo.seedForTest(

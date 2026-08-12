@@ -140,7 +140,7 @@ abstract final class VaultExporter {
   /// de passe.
   static const String encryptedFormatMarker = 'passvault-encrypted';
 
-  /// Vrai si le contenu est une sauvegarde chiffrée PassVault.
+  /// Vrai si le contenu est une sauvegarde chiffrée Coffort.
   static bool isEncryptedBackup(String content) {
     final trimmed = content.trimLeft();
     if (!trimmed.startsWith('{')) return false;
@@ -173,7 +173,7 @@ abstract final class VaultExporter {
 
     if (root['format'] != encryptedFormatMarker) {
       throw const ExportException(
-        'Ce fichier n’est pas une sauvegarde chiffrée PassVault.',
+        'Ce fichier n’est pas une sauvegarde chiffrée Coffort.',
       );
     }
 
@@ -276,6 +276,15 @@ abstract final class VaultExporter {
         };
       case SecureNoteData():
         base['secureNote'] = {'type': 0};
+      case SshKeyData d:
+        // Mêmes clés que dans l'export de Bitwarden, pour que le fichier reste
+        // relisible par eux comme par nous.
+        base['sshKey'] = {
+          'privateKey': d.privateKey.isEmpty ? null : d.privateKey,
+          'publicKey': d.publicKey.isEmpty ? null : d.publicKey,
+          'keyFingerprint':
+              d.keyFingerprint.isEmpty ? null : d.keyFingerprint,
+        };
     }
 
     return base;
@@ -300,6 +309,16 @@ abstract final class VaultExporter {
         if (d.passportNumber.isNotEmpty) {
           extra.add('Passeport : ${d.passportNumber}');
         }
+      case SshKeyData d:
+        // La clé publique et l'empreinte, oui. La clé privée, non : un CSV est
+        // un fichier en clair, souvent destiné à une autre application, et y
+        // déverser un bloc PEM de plusieurs lignes le rendrait de surcroît
+        // illisible. L'export JSON chiffré, lui, la conserve.
+        if (d.publicKey.isNotEmpty) extra.add('Clé publique : ${d.publicKey}');
+        if (d.keyFingerprint.isNotEmpty) {
+          extra.add('Empreinte : ${d.keyFingerprint}');
+        }
+        extra.add('Clé privée non exportée en CSV — utiliser l’export chiffré.');
       case LoginData():
       case SecureNoteData():
         break;

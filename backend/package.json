@@ -1,7 +1,7 @@
 {
-  "name": "passvault-backend",
+  "name": "coffort-backend",
   "version": "2.0.0",
-  "description": "Entrepôt zero-knowledge pour PassVault : stocke des blobs chiffrés qu'il ne peut pas lire",
+  "description": "Entrepôt zero-knowledge pour Coffort : stocke des blobs chiffrés qu'il ne peut pas lire",
   "main": "server.js",
   "private": true,
   "scripts": {

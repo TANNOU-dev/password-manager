@@ -152,7 +152,7 @@ class _AutofillSettingCardState extends State<AutofillSettingCard>
                   children: [
                     Text(
                       enabled
-                          ? 'PassVault remplit vos identifiants'
+                          ? 'Coffort remplit vos identifiants'
                           : 'Remplissage automatique inactif',
                       style: text.titleMedium,
                     ),

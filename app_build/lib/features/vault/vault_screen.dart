@@ -633,6 +633,7 @@ class _TypePickerSheet extends StatelessWidget {
     CipherType.card: 'Numéro, échéance, cryptogramme',
     CipherType.identity: 'Nom, adresse, pièces d’identité',
     CipherType.secureNote: 'Texte libre chiffré',
+    CipherType.sshKey: 'Paire Ed25519, générée ou collée',
   };
 
   static const _icons = {
@@ -640,6 +641,7 @@ class _TypePickerSheet extends StatelessWidget {
     CipherType.card: Icons.credit_card_rounded,
     CipherType.identity: Icons.badge_outlined,
     CipherType.secureNote: Icons.sticky_note_2_outlined,
+    CipherType.sshKey: Icons.terminal_rounded,
   };
 
   @override
@@ -648,7 +650,11 @@ class _TypePickerSheet extends StatelessWidget {
     final text = Theme.of(context).textTheme;
 
     return SafeArea(
-      child: Padding(
+      // Défilable : la feuille est bornée par la hauteur de l'écran, et les
+      // quatre types tenaient à un pixel près. Un utilisateur qui grossit la
+      // police système, ou un appareil un peu plus court, tronquait le dernier
+      // type sans aucun moyen d'y accéder.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, Gap.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,

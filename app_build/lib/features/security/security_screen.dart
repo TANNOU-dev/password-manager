@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/design/app_theme.dart';
 import '../../core/design/tokens.dart';
+import '../../data/api/api_client.dart';
 import '../../data/breach/hibp_service.dart';
 import '../../data/models/cipher.dart';
 import '../../data/vault_repository.dart';
@@ -118,6 +119,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
             onCheck: _checking ? null : _checkBreaches,
           ),
 
+          const SizedBox(height: Gap.lg),
+          const _DuplicateCard(),
+
           if (report.totalAnalysed == 0) ...[
             const SizedBox(height: Gap.giant),
             const EmptyState(
@@ -131,6 +135,166 @@ class _SecurityScreenState extends State<SecurityScreen> {
             for (final issue in HealthIssue.values)
               _IssueSection(issue: issue, report: report),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Doublons stricts déjà présents dans le coffre.
+///
+/// La déduplication à l'import empêche d'en créer de nouveaux ; elle ne dit
+/// rien de ce qui était là avant. Un coffre qui a reçu deux fois le même
+/// fichier a besoin qu'on vienne le nettoyer.
+///
+/// Le critère est le même qu'à l'import : contenu identique de bout en bout.
+/// Deux comptes qui ne diffèrent que par leur mot de passe ne sont pas des
+/// doublons — c'est le même compte à deux époques, et fondre les deux perdrait
+/// le mot de passe à jour.
+class _DuplicateCard extends StatefulWidget {
+  const _DuplicateCard();
+
+  @override
+  State<_DuplicateCard> createState() => _DuplicateCardState();
+}
+
+class _DuplicateCardState extends State<_DuplicateCard> {
+  bool _busy = false;
+  String? _progress;
+  String? _error;
+  int? _trashed;
+
+  Future<void> _clean(int expected) async {
+    final repo = context.read<VaultRepository>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Retirer $expected exemplaire'
+            '${expected > 1 ? 's' : ''} en trop ?'),
+        content: const Text(
+          'Un exemplaire de chaque est conservé. Les autres partent à la '
+          'corbeille, d’où vous pourrez les restaurer si besoin.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Mettre à la corbeille'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _busy = true;
+      _error = null;
+      _trashed = null;
+    });
+
+    try {
+      final count = await repo.trashDuplicates(
+        onProgress: (done, total) {
+          if (mounted) setState(() => _progress = '$done / $total');
+        },
+      );
+      if (mounted) setState(() => _trashed = count);
+    } on ApiFailure catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      // Le coffre verrouillé lève un StateError, pas une ApiFailure.
+      if (mounted) setState(() => _error = 'Nettoyage interrompu : $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _progress = null;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.palette;
+    final text = Theme.of(context).textTheme;
+    final repo = context.watch<VaultRepository>();
+    final count = repo.duplicateCount;
+
+    if (count == 0) {
+      // Toujours affichée, même sans rien à signaler.
+      //
+      // La masquer était une erreur : une fonction invisible quand elle ne
+      // trouve rien est indiscernable d'une fonction absente. L'utilisateur ne
+      // peut alors pas savoir si le coffre est propre ou si la vérification n'a
+      // jamais eu lieu — et c'est précisément ce doute qu'un écran de sécurité
+      // doit lever.
+      return HairlineCard(
+        child: Row(
+          children: [
+            Icon(Icons.check_circle_outline_rounded, size: 18, color: c.success),
+            const SizedBox(width: Gap.md),
+            Expanded(
+              child: Text(
+                _trashed == null
+                    ? 'Aucun doublon : chaque entrée du coffre est unique.'
+                    : '$_trashed exemplaire${_trashed! > 1 ? 's' : ''} mis à la '
+                        'corbeille. Plus aucun doublon.',
+                style: text.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return HairlineCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.copy_all_outlined, size: 18, color: c.warning),
+              const SizedBox(width: Gap.md),
+              Expanded(
+                child: Text(
+                  '$count entrée${count > 1 ? 's' : ''} en double',
+                  style: text.titleMedium,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Gap.sm),
+          Text(
+            'Ces entrées répètent exactement une autre du coffre — mêmes '
+            'champs du début à la fin. Un coffre qui a reçu deux fois le même '
+            'fichier d’import se retrouve dans cet état.',
+            style: text.bodySmall?.copyWith(color: c.textSecondary),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: Gap.md),
+            InlineError(message: _error!),
+          ],
+          const SizedBox(height: Gap.lg),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: _busy ? null : () => _clean(count),
+              icon: _busy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.cleaning_services_outlined, size: 18),
+              label: Text(_busy
+                  ? 'Nettoyage… ${_progress ?? ""}'
+                  : 'Retirer les doublons'),
+            ),
+          ),
         ],
       ),
     );
@@ -208,7 +372,7 @@ class _BreachCheckCard extends StatelessWidget {
                 ? 'Comparaison faite avec la base Have I Been Pwned. Un mot de '
                     'passe absent n’est pas garanti sûr : il n’est simplement '
                     'pas dans les fuites répertoriées.'
-                : 'PassVault n’envoie que les 5 premiers caractères de '
+                : 'Coffort n’envoie que les 5 premiers caractères de '
                     'l’empreinte SHA-1 de chaque mot de passe. Le service '
                     'renvoie environ 800 empreintes commençant pareil, et la '
                     'comparaison se fait ici. Ni le mot de passe ni son '

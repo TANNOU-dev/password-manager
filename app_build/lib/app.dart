@@ -12,8 +12,8 @@ import 'features/auth/unlock_screen.dart';
 import 'features/autofill/autofill_screen.dart';
 import 'features/shell/app_shell.dart';
 
-class PassVaultApp extends StatefulWidget {
-  const PassVaultApp({
+class CoffortApp extends StatefulWidget {
+  const CoffortApp({
     super.key,
     required this.settings,
     required this.deviceName,
@@ -29,10 +29,10 @@ class PassVaultApp extends StatefulWidget {
   final bool launchedForAutofill;
 
   @override
-  State<PassVaultApp> createState() => _PassVaultAppState();
+  State<CoffortApp> createState() => _CoffortAppState();
 }
 
-class _PassVaultAppState extends State<PassVaultApp> {
+class _CoffortAppState extends State<CoffortApp> {
   late final VaultRepository _vault;
   late final LockController _lock;
   late final ClipboardGuard _clipboard;
@@ -55,12 +55,35 @@ class _PassVaultAppState extends State<PassVaultApp> {
 
   bool _wasUnlocked = false;
 
+  /// Nécessaire pour dépiler les écrans au verrouillage : `_VaultGate` ne peut
+  /// remplacer que ce qu'il construit lui-même.
+  final _navigatorKey = GlobalKey<NavigatorState>();
+
   void _onVaultStatusChanged() {
     final unlocked = _vault.isUnlocked;
     if (_wasUnlocked && !unlocked) {
       _clipboard.onLock();
+      _dismissPushedRoutes();
     }
     _wasUnlocked = unlocked;
+  }
+
+  /// Ramène la navigation à la racine quand le coffre se verrouille.
+  ///
+  /// `_VaultGate` est la route d'accueil : il bascule bien sur l'écran de
+  /// déverrouillage, mais **sous** tout ce qui a été empilé par-dessus. Sans ce
+  /// dépilage, verrouiller pendant qu'un détail d'élément est ouvert laissait le
+  /// mot de passe à l'écran, et toute action sur cet écran mort échouait en
+  /// silence sur un coffre sans clé. C'est ce qui bloquait l'import : le
+  /// sélecteur de fichiers fait passer l'app en arrière-plan, donc le coffre se
+  /// verrouillait pendant qu'on choisissait le fichier.
+  ///
+  /// Différé d'une frame : la notification peut arriver en plein build, et on ne
+  /// touche pas au Navigator pendant qu'il se construit.
+  void _dismissPushedRoutes() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    });
   }
 
   @override
@@ -84,7 +107,8 @@ class _PassVaultAppState extends State<PassVaultApp> {
       ],
       child: Consumer<AppSettings>(
         builder: (context, settings, _) => MaterialApp(
-          title: 'PassVault',
+          title: 'Coffort',
+          navigatorKey: _navigatorKey,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),

@@ -193,7 +193,7 @@ class BiometricUnlockStore {
         // Ailleurs, la boîte système garde ses libellés par défaut.
         authMessages: [
           AndroidAuthMessages(
-            signInTitle: 'PassVault',
+            signInTitle: 'Coffort',
             signInHint: reason,
             cancelButton: 'Annuler',
           ),

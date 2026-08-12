@@ -76,7 +76,7 @@ done
 # Contrôle inverse : l'e-mail, lui, DOIT être présent. Sans ça un grep cassé
 # passerait tous les tests précédents pour de mauvaises raisons.
 echo
-if grep -aqF -- "e2e@passvault.test" "$DB" "$DB-wal" 2>/dev/null; then
+if grep -aqF -- "e2e@coffort.test" "$DB" "$DB-wal" 2>/dev/null; then
   echo "  ✓ contrôle inverse : l'e-mail du compte est bien lisible (le grep fonctionne)"
 else
   echo "  ✗ contrôle inverse ÉCHOUÉ : même l'e-mail est introuvable, le grep ne teste rien"

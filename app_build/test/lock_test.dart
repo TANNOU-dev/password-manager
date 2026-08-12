@@ -8,7 +8,7 @@ import 'package:password_manager/core/lock/lock_controller.dart';
 import 'package:password_manager/core/settings/app_settings.dart';
 import 'package:password_manager/core/settings/lock_settings.dart';
 import 'package:password_manager/data/api/api_client.dart';
-import 'package:password_manager/data/api/passvault_api.dart';
+import 'package:password_manager/data/api/coffort_api.dart';
 import 'package:password_manager/data/models/cipher.dart';
 import 'package:password_manager/data/vault_repository.dart';
 
@@ -16,7 +16,7 @@ import 'package:password_manager/data/vault_repository.dart';
 /// demanderait d'attendre 15 minutes.
 
 VaultRepository _repo() => VaultRepository(
-      api: PassvaultApi(ApiClient(baseUrl: 'http://127.0.0.1:1')),
+      api: CoffortApi(ApiClient(baseUrl: 'http://127.0.0.1:1')),
       deviceName: 'test',
     );
 

@@ -7,7 +7,50 @@ class ParsedImport {
     required this.items,
     this.folderNames = const [],
     this.skipped = const [],
+    this.duplicatesInFile = 0,
   });
+
+  /// Construit un import en retirant les entrées répétées dans le fichier.
+  ///
+  /// Un export contient souvent deux fois le même compte : une ligne ajoutée à
+  /// la main, puis la même reprise par le navigateur. Les enregistrer toutes les
+  /// deux donne un coffre où l'on ne sait plus laquelle est la bonne, et où
+  /// changer un mot de passe n'en corrige qu'une.
+  ///
+  /// Le critère est l'égalité **du contenu entier**, pas seulement du nom : deux
+  /// comptes distincts sur le même site doivent survivre tous les deux. La
+  /// première occurrence est conservée, les suivantes comptées.
+  factory ParsedImport.deduplicated({
+    required String sourceLabel,
+    required List<CipherItem> items,
+    List<String> folderNames = const [],
+    List<String> skipped = const [],
+  }) {
+    final seen = <String>{};
+    final unique = <CipherItem>[];
+    var duplicates = 0;
+
+    for (final item in items) {
+      if (seen.add(item.contentFingerprint)) {
+        unique.add(item);
+      } else {
+        duplicates++;
+      }
+    }
+
+    return ParsedImport(
+      sourceLabel: sourceLabel,
+      items: unique,
+      folderNames: folderNames,
+      skipped: skipped,
+      duplicatesInFile: duplicates,
+    );
+  }
+
+  /// Nombre d'entrées écartées parce qu'elles répétaient une autre entrée du
+  /// même fichier. Affiché avant validation : un import qui retire des lignes
+  /// sans le dire ferait douter du compte final.
+  final int duplicatesInFile;
 
   /// Format reconnu, affiché à l'utilisateur avant qu'il valide.
   final String sourceLabel;
@@ -74,7 +117,9 @@ ParsedImport requireSomething(
   if (items.isEmpty && skipped.isEmpty) {
     throw const ImportFormatException('Aucune entrée trouvée dans le fichier');
   }
-  return ParsedImport(
+  // Point de passage unique de tous les formats : dédupliquer ici plutôt que
+  // dans chaque importateur garantit qu'aucun ne puisse l'oublier.
+  return ParsedImport.deduplicated(
     sourceLabel: sourceLabel,
     items: items,
     folderNames: folderNames,

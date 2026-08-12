@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../core/crypto/kdf_params.dart';
 import '../core/crypto/vault_crypto.dart';
 import 'api/api_client.dart';
-import 'api/passvault_api.dart';
+import 'api/coffort_api.dart';
 import 'import/importers.dart';
 import 'models/cipher.dart';
 
@@ -34,13 +34,13 @@ class UndecryptableCipher {
 /// `lock()` l'efface. Rien de déchiffré n'est jamais écrit sur le disque.
 class VaultRepository extends ChangeNotifier {
   VaultRepository({
-    PassvaultApi? api,
+    CoffortApi? api,
     VaultCrypto? crypto,
     this.deviceName,
-  })  : _api = api ?? PassvaultApi(ApiClient()),
+  })  : _api = api ?? CoffortApi(ApiClient()),
         _crypto = crypto ?? VaultCrypto();
 
-  final PassvaultApi _api;
+  final CoffortApi _api;
   final VaultCrypto _crypto;
   final String? deviceName;
 
@@ -416,6 +416,73 @@ class VaultRepository extends ChangeNotifier {
     _replace(item.id!, (i) => i.copyWith(deletedAt: DateTime.now()));
   }
 
+  /// Groupes d'éléments actifs strictement identiques, à plus d'un exemplaire.
+  ///
+  /// Sert au nettoyage d'un coffre qui a accumulé deux imports du même fichier.
+  /// La déduplication à l'import empêche d'en créer de nouveaux ; elle ne dit
+  /// rien de ce qui était déjà là.
+  ///
+  /// Chaque groupe est ordonné : le premier est celui qu'on garde. Les éléments
+  /// sans identifiant serveur passent en dernier — on ne veut pas conserver
+  /// celui qu'on ne saurait pas supprimer ensuite.
+  List<List<CipherItem>> duplicateGroups() {
+    // Mémoïsé sur l'identité de la liste source.
+    //
+    // L'écran de sécurité lit `duplicateCount` dans son `build`, donc à chaque
+    // redessin. Sans ce cache, un coffre de 600 entrées relançait 600
+    // sérialisations JSON par frame — de quoi faire sauter l'affichage sur un
+    // téléphone modeste. Chaque mutation remplace `_items` par une nouvelle
+    // liste, `identical` suffit donc à détecter qu'il faut recalculer.
+    if (identical(_duplicateSource, _items) && _duplicateCache != null) {
+      return _duplicateCache!;
+    }
+
+    final byFingerprint = <String, List<CipherItem>>{};
+    for (final item in items) {
+      byFingerprint.putIfAbsent(item.contentFingerprint, () => []).add(item);
+    }
+
+    final groups = byFingerprint.values.where((g) => g.length > 1).map((g) {
+      final sorted = [...g]..sort((a, b) {
+          if ((a.id == null) != (b.id == null)) return a.id == null ? 1 : -1;
+          return 0;
+        });
+      return sorted;
+    }).toList(growable: false);
+
+    _duplicateSource = _items;
+    _duplicateCache = groups;
+    return groups;
+  }
+
+  /// Liste sur laquelle le cache ci-dessus a été calculé.
+  List<CipherItem>? _duplicateSource;
+  List<List<CipherItem>>? _duplicateCache;
+
+  /// Nombre d'exemplaires en trop, tous groupes confondus.
+  int get duplicateCount =>
+      duplicateGroups().fold(0, (sum, group) => sum + group.length - 1);
+
+  /// Envoie à la corbeille les exemplaires surnuméraires, en gardant le premier
+  /// de chaque groupe.
+  ///
+  /// Corbeille et non suppression définitive : si la comparaison s'est trompée
+  /// quelque part, tout est récupérable. Rend le nombre d'éléments déplacés.
+  Future<int> trashDuplicates({void Function(int done, int total)? onProgress}) async {
+    _requireToken();
+
+    final extras = [
+      for (final group in duplicateGroups()) ...group.skip(1),
+    ].where((item) => item.id != null).toList(growable: false);
+
+    var done = 0;
+    for (final item in extras) {
+      await moveToTrash(item);
+      onProgress?.call(++done, extras.length);
+    }
+    return done;
+  }
+
   Future<void> restoreFromTrash(CipherItem item) async {
     final token = _requireToken();
     if (item.id == null) return;
@@ -500,11 +567,32 @@ class VaultRepository extends ChangeNotifier {
   ///
   /// Les noms existants sont réutilisés : réimporter deux fois le même fichier
   /// ne crée pas « Dev » en double.
+  /// Empreintes de contenu des éléments déjà présents, corbeille comprise.
+  ///
+  /// La corbeille compte : réimporter une entrée qu'on vient de jeter la ferait
+  /// réapparaître comme neuve, et on la croirait ressuscitée par erreur.
+  Set<String> get existingFingerprints => {
+        // `_items` contient déjà les éléments actifs et ceux en corbeille : ne
+        // pas filtrer, sinon réimporter une entrée qu'on vient de jeter la
+        // ferait réapparaître comme neuve.
+        for (final item in _items) item.contentFingerprint,
+      };
+
   Future<int> importParsed(
     ParsedImport parsed, {
     void Function(String step)? onProgress,
   }) async {
     _requireToken();
+
+    // Ce que le coffre contient déjà n'est pas réimporté. Sans ça, relancer le
+    // même fichier — après une coupure réseau, par exemple — donnerait deux
+    // exemplaires de chaque entrée.
+    final alreadyPresent = existingFingerprints;
+    final incoming = parsed.items
+        .where((item) => !alreadyPresent.contains(item.contentFingerprint))
+        .toList(growable: false);
+
+    if (incoming.isEmpty) return 0;
 
     final byName = <String, String>{
       for (final folder in _folders) folder.name.toLowerCase(): folder.id,
@@ -518,7 +606,7 @@ class VaultRepository extends ChangeNotifier {
       byName[key] = created.id;
     }
 
-    final resolved = parsed.items.map((item) {
+    final resolved = incoming.map((item) {
       final name = item.folderId;
       if (name == null) return item;
       final id = byName[name.toLowerCase()];

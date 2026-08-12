@@ -308,7 +308,7 @@ void main() {
       expect(VaultExporter.isEncryptedBackup('pas du json'), isFalse);
     });
 
-    test('rejette un fichier qui n’est pas une sauvegarde PassVault', () async {
+    test('rejette un fichier qui n’est pas une sauvegarde Coffort', () async {
       await expectLater(
         VaultExporter.decryptBackup(
           '{"format":"autre-chose"}',

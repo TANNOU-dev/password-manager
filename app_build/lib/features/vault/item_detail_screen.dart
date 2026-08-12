@@ -150,6 +150,7 @@ class _DetailBody extends StatelessWidget {
             CardData() => _cardSections(context, data),
             IdentityData() => _identitySections(context, data),
             SecureNoteData() => _noteSections(context, data),
+            SshKeyData() => _sshKeySections(context, data),
           },
 
           if (data.fields.isNotEmpty) ...[
@@ -388,6 +389,94 @@ class _DetailBody extends StatelessWidget {
   }
 
   // ── Note ──
+  // ── Clé SSH ──
+  //
+  // Ordre voulu : privée, publique, empreinte. La clé privée est masquée comme
+  // un mot de passe ; les deux autres sont publiques par nature et se lisent
+  // directement — les cacher ne protégerait rien et gênerait la comparaison
+  // d'empreinte, qui est justement l'usage courant.
+  List<Widget> _sshKeySections(BuildContext context, SshKeyData data) {
+    final c = context.palette;
+    final text = Theme.of(context).textTheme;
+
+    return [
+      const SectionLabel('Clé privée'),
+      SecretField(
+        label: 'Clé privée',
+        value: data.privateKey,
+        onCopied: () {},
+      ),
+      const SizedBox(height: Gap.sm),
+      Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 14, color: c.warning),
+          const SizedBox(width: Gap.xs),
+          Expanded(
+            child: Text(
+              'Ne se colle jamais ailleurs que dans un fichier de clé.',
+              style: text.bodySmall?.copyWith(color: c.textTertiary),
+            ),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: Gap.xxl),
+      const SectionLabel('Clé publique'),
+      HairlineCard(
+        sunken: true,
+        child: data.publicKey.isEmpty
+            ? Text('Aucune clé publique',
+                style: text.bodyMedium?.copyWith(color: c.textTertiary))
+            : SelectableText(
+                data.publicKey,
+                style: text.bodySmall?.copyWith(
+                  fontFamily: 'monospace',
+                  height: 1.5,
+                ),
+              ),
+      ),
+      const SizedBox(height: Gap.md),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton.icon(
+          onPressed: data.publicKey.isEmpty
+              ? null
+              : () => AppFeedback.copyValue(
+                    context,
+                    data.publicKey,
+                    'Clé publique',
+                  ),
+          icon: const Icon(Icons.content_copy_outlined, size: 18),
+          label: const Text('Copier la clé publique'),
+        ),
+      ),
+
+      if (data.keyFingerprint.isNotEmpty) ...[
+        const SizedBox(height: Gap.xxl),
+        const SectionLabel('Empreinte'),
+        HairlineCard(
+          sunken: true,
+          padding: const EdgeInsets.symmetric(
+            horizontal: Gap.lg,
+            vertical: Gap.sm,
+          ),
+          child: InfoRow(
+            label: 'SHA256',
+            value: data.keyFingerprint,
+            copyable: true,
+            copyLabel: 'Empreinte',
+            monospace: true,
+          ),
+        ),
+        const SizedBox(height: Gap.sm),
+        Text(
+          'À comparer avec ce qu’affiche le serveur à la première connexion.',
+          style: text.bodySmall?.copyWith(color: c.textTertiary),
+        ),
+      ],
+    ];
+  }
+
   List<Widget> _noteSections(BuildContext context, SecureNoteData data) {
     return [
       HairlineCard(
@@ -439,6 +528,7 @@ class _Header extends StatelessWidget {
       CipherType.card => Icons.credit_card_rounded,
       CipherType.identity => Icons.badge_outlined,
       CipherType.secureNote => Icons.sticky_note_2_outlined,
+      CipherType.sshKey => Icons.terminal_rounded,
     };
 
     return Row(

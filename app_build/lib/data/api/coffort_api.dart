@@ -193,8 +193,8 @@ class SyncPayload {
 
 /// Couche d'appel de l'API. Ne chiffre ni ne déchiffre rien : elle transporte des
 /// blobs déjà scellés par `VaultCrypto`.
-class PassvaultApi {
-  PassvaultApi(this._client);
+class CoffortApi {
+  CoffortApi(this._client);
 
   final ApiClient _client;
 

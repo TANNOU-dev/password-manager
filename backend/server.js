@@ -10,7 +10,7 @@ sweeper.unref();
 
 const server = app.listen(config.port, config.host, () => {
   const k = config.defaultKdf;
-  console.log(`PassVault API v2 sur http://${config.host}:${config.port}`);
+  console.log(`Coffort API v2 sur http://${config.host}:${config.port}`);
   console.log(`  base           : ${config.dbPath}`);
   console.log(`  inscriptions   : ${config.registration.mode}`);
   console.log(`  KDF par défaut : ${k.type} m=${k.memory} t=${k.iterations} p=${k.parallelism}`);

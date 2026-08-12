@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// Jetons de design de PassVault.
+/// Jetons de design de Coffort.
 ///
 /// Une seule source pour les couleurs, les espacements, les rayons et les
 /// durées. Les écrans ne doivent jamais écrire une valeur littérale : c'est ce
@@ -65,50 +65,61 @@ class AppColors {
   /// Voile posé derrière les feuilles et les boîtes de dialogue.
   final Color overlay;
 
-  /// Thème sombre : noir bleuté plutôt que gris neutre, pour que l'indigo de
-  /// l'accent ne paraisse pas délavé.
+  /// Thème sombre, aligné sur la palette de Bitwarden.
+  ///
+  /// Le gris y est franchement bleuté (#121A27 plutôt qu'un noir neutre), ce
+  /// qui réchauffe l'ensemble et fait ressortir le bleu d'accent sans qu'il ait
+  /// besoin d'être saturé.
+  ///
+  /// Le choix le moins évident est `onPrimary` : le bleu d'accent est *clair*,
+  /// donc le texte posé dessus est sombre. C'est l'inverse du réflexe habituel
+  /// (accent sombre, texte blanc), et c'est ce qui donne aux boutons pleins leur
+  /// aspect reconnaissable. Un blanc sur ce bleu tomberait à 1,9:1 de contraste,
+  /// très en dessous du seuil lisible.
   static const AppColors dark = AppColors(
-    background: Color(0xFF0B0D12),
-    surface: Color(0xFF14171F),
-    surfaceRaised: Color(0xFF1B1F29),
-    surfaceSunken: Color(0xFF0F1218),
-    hairline: Color(0x14FFFFFF),
-    hairlineStrong: Color(0x24FFFFFF),
-    textPrimary: Color(0xFFF2F4F8),
-    textSecondary: Color(0xFF9BA3B4),
-    textTertiary: Color(0xFF6B7385),
-    primary: Color(0xFF6D5DF6),
-    primaryHover: Color(0xFF8B7DFF),
-    onPrimary: Color(0xFFFFFFFF),
-    primaryWash: Color(0x266D5DF6),
-    accent: Color(0xFF22D3EE),
-    success: Color(0xFF34D399),
-    warning: Color(0xFFFBBF24),
-    danger: Color(0xFFF87171),
-    dangerWash: Color(0x26F87171),
-    overlay: Color(0xB3000000),
+    background: Color(0xFF121A27),
+    surface: Color(0xFF202733),
+    surfaceRaised: Color(0xFF303946),
+    surfaceSunken: Color(0xFF171E2B),
+    hairline: Color(0x1AFFFFFF),
+    hairlineStrong: Color(0x2EFFFFFF),
+    textPrimary: Color(0xFFF3F6F9),
+    textSecondary: Color(0xFF96A3BB),
+    textTertiary: Color(0xFF7A8699),
+    primary: Color(0xFF65ABFF),
+    primaryHover: Color(0xFF8FC3FF),
+    onPrimary: Color(0xFF202733),
+    primaryWash: Color(0x2665ABFF),
+    accent: Color(0xFF65ABFF),
+    success: Color(0xFF6BF178),
+    warning: Color(0xFFFFBF00),
+    danger: Color(0xFFFF4E63),
+    dangerWash: Color(0x26FF4E63),
+    overlay: Color(0x66000000),
   );
 
+  /// Thème clair. Ici le bleu s'assombrit (#175DDC) et redevient un fond à
+  /// texte blanc : c'est la contrainte de contraste qui commande, pas le goût.
   static const AppColors light = AppColors(
-    background: Color(0xFFF6F7FA),
+    background: Color(0xFFF3F6F9),
     surface: Color(0xFFFFFFFF),
     surfaceRaised: Color(0xFFFFFFFF),
-    surfaceSunken: Color(0xFFF1F3F7),
-    hairline: Color(0x14101322),
-    hairlineStrong: Color(0x24101322),
-    textPrimary: Color(0xFF101322),
-    textSecondary: Color(0xFF5A6478),
-    textTertiary: Color(0xFF8A93A6),
-    primary: Color(0xFF5849E0),
-    primaryHover: Color(0xFF4737C7),
+    surfaceSunken: Color(0xFFEEF3F9),
+    hairline: Color(0x1A1B2029),
+    hairlineStrong: Color(0x2E1B2029),
+    textPrimary: Color(0xFF1B2029),
+    textSecondary: Color(0xFF5A6D91),
+    textTertiary: Color(0xFF79808E),
+    primary: Color(0xFF175DDC),
+    primaryHover: Color(0xFF1A41AC),
     onPrimary: Color(0xFFFFFFFF),
-    primaryWash: Color(0x1A5849E0),
-    accent: Color(0xFF0E9BB5),
-    success: Color(0xFF0F9D6E),
-    warning: Color(0xFFB45309),
-    danger: Color(0xFFDC2626),
-    dangerWash: Color(0x1ADC2626),
-    overlay: Color(0x66101322),
+    primaryWash: Color(0x1A175DDC),
+    accent: Color(0xFF175DDC),
+    success: Color(0xFF0C8018),
+    warning: Color(0xFFAC5800),
+    danger: Color(0xFFCB263A),
+    dangerWash: Color(0x1ACB263A),
+    overlay: Color(0x661B2029),
   );
 }
 

@@ -13,7 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:password_manager/core/crypto/kdf_params.dart';
 import 'package:password_manager/core/crypto/vault_crypto.dart';
 import 'package:password_manager/data/api/api_client.dart';
-import 'package:password_manager/data/api/passvault_api.dart';
+import 'package:password_manager/data/api/coffort_api.dart';
 import 'package:password_manager/data/export/vault_export.dart';
 import 'package:password_manager/data/import/importers.dart';
 import 'package:password_manager/data/models/cipher.dart';
@@ -21,7 +21,7 @@ import 'package:password_manager/data/vault_repository.dart';
 
 const apiUrl = String.fromEnvironment('PASSVAULT_API_URL');
 
-const email = 'e2e@passvault.test';
+const email = 'e2e@coffort.test';
 const masterPassword = 'mot-de-passe-maitre-de-test-2026';
 
 // Marqueurs recherchés ensuite dans le fichier de base de données.
@@ -49,7 +49,7 @@ void main() {
   );
 
   VaultRepository build() => VaultRepository(
-        api: PassvaultApi(ApiClient(baseUrl: apiUrl)),
+        api: CoffortApi(ApiClient(baseUrl: apiUrl)),
         deviceName: 'suite-e2e',
       );
 

@@ -17,7 +17,7 @@ import 'core/settings/app_settings.dart';
 Future<void> autofillEntryPoint() async {
   WidgetsFlutterBinding.ensureInitialized();
   final settings = await AppSettings.load();
-  runApp(PassVaultApp(
+  runApp(CoffortApp(
     settings: settings,
     deviceName: _deviceName(),
     launchedForAutofill: true,
@@ -41,7 +41,7 @@ Future<void> main() async {
 
   final settings = await AppSettings.load();
 
-  runApp(PassVaultApp(settings: settings, deviceName: _deviceName()));
+  runApp(CoffortApp(settings: settings, deviceName: _deviceName()));
 }
 
 /// Nom affiché dans la liste des appareils connectés. Volontairement grossier :

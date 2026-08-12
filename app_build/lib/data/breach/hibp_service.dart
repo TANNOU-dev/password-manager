@@ -91,7 +91,7 @@ class HibpService {
         Uri.parse('$endpoint/$prefix'),
         headers: const {
           'Add-Padding': 'true',
-          'User-Agent': 'PassVault',
+          'User-Agent': 'Coffort',
         },
       );
     } catch (e) {

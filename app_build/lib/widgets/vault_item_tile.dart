@@ -38,6 +38,7 @@ class VaultItemTile extends StatelessWidget {
         CipherType.card => Icons.credit_card_rounded,
         CipherType.identity => Icons.badge_outlined,
         CipherType.secureNote => Icons.sticky_note_2_outlined,
+        CipherType.sshKey => Icons.terminal_rounded,
       };
 
   /// Source de la pastille : le domaine si on en a un, sinon le nom. Le domaine
@@ -62,6 +63,11 @@ class VaultItemTile extends StatelessWidget {
             .join(' · '),
       IdentityData() => data.fullName.isNotEmpty ? data.fullName : data.email,
       SecureNoteData() => 'Note sécurisée',
+      // L'empreinte plutôt que le commentaire : c'est elle qu'on compare à ce
+      // qu'affiche un serveur, et elle identifie la clé sans ambiguïté.
+      SshKeyData() => data.keyFingerprint.isNotEmpty
+          ? data.keyFingerprint
+          : 'Clé SSH',
     };
   }
 

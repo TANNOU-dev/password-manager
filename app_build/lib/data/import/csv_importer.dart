@@ -94,7 +94,7 @@ class CsvImporter extends VaultImporter {
 
     if (columns.isEmpty) {
       throw const ImportFormatException(
-        'Aucune ligne d’en-tête reconnue. PassVault a besoin des noms de '
+        'Aucune ligne d’en-tête reconnue. Coffort a besoin des noms de '
         'colonnes pour savoir où sont l’identifiant et le mot de passe.',
       );
     }

@@ -10,7 +10,7 @@ import '../../core/settings/app_settings.dart';
 import '../../core/settings/lock_settings.dart';
 import '../../core/utils/password_strength.dart';
 import '../../data/api/api_client.dart';
-import '../../data/api/passvault_api.dart';
+import '../../data/api/coffort_api.dart';
 import '../../data/vault_repository.dart';
 import '../../widgets/common.dart';
 import '../../widgets/strength_meter.dart';
@@ -202,11 +202,6 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
 
-          // ── Serveur ──
-          const SizedBox(height: Gap.xxl),
-          const SectionLabel('Serveur'),
-          _ServerCard(repo: repo),
-
           // ── Sécurité du compte ──
           const SizedBox(height: Gap.xxl),
           const SectionLabel('Sécurité du compte'),
@@ -287,7 +282,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: Gap.giant),
           Center(
             child: Text(
-              'PassVault · coffre zero-knowledge',
+              'Coffort · coffre zero-knowledge',
               style: text.bodySmall?.copyWith(color: c.textTertiary, fontSize: 11),
             ),
           ),
@@ -327,7 +322,15 @@ class _LockSectionState extends State<_LockSection> {
   }
 
   void _refresh() {
-    setState(() => _biometricState = _readBiometricState());
+    // Corps en bloc, et non une flèche : `=> x = f()` renvoie la valeur
+    // affectée, donc un Future. Flutter refuse un callback de setState qui
+    // renvoie un Future — et comme il lève *après* avoir exécuté le callback
+    // mais *avant* markNeedsBuild, l'état changeait sans que l'écran se
+    // redessine. L'interrupteur biométrique restait donc sur sa position
+    // précédente alors que l'action avait réussi.
+    setState(() {
+      _biometricState = _readBiometricState();
+    });
   }
 
   Future<void> _toggleBiometric(bool enable) async {
@@ -562,7 +565,10 @@ class _OptionSheet<T> extends StatelessWidget {
     final text = Theme.of(context).textTheme;
 
     return SafeArea(
-      child: Padding(
+      // Défilable : la feuille est bornée par la hauteur de l'écran, et les six
+      // délais de verrouillage la dépassaient de 118 pixels sur un écran de
+      // 360 dp. Les derniers choix étaient donc affichés mais hors d'atteinte.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(Gap.xl, 0, Gap.xl, Gap.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -626,72 +632,6 @@ class _OptionSheet<T> extends StatelessWidget {
   }
 }
 
-class _ServerCard extends StatelessWidget {
-  const _ServerCard({required this.repo});
-
-  final VaultRepository repo;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.palette;
-    final text = Theme.of(context).textTheme;
-    final url = repo.serverUrl;
-    final insecure = isInsecureServerUrl(url);
-
-    return HairlineCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.dns_outlined, size: 17, color: c.textSecondary),
-              const SizedBox(width: Gap.sm),
-              Expanded(
-                child: Text(
-                  url,
-                  style: text.bodyMedium?.copyWith(color: c.textPrimary),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Gap.sm),
-          Text(
-            'Modifiable au build : --dart-define=PASSVAULT_API_URL=…',
-            style: AppFonts.mono(
-              text.bodySmall!.copyWith(color: c.textTertiary, fontSize: 11),
-            ),
-          ),
-          if (insecure) ...[
-            const SizedBox(height: Gap.md),
-            Container(
-              padding: const EdgeInsets.all(Gap.md),
-              decoration: BoxDecoration(
-                color: c.warning.withValues(alpha: 0.1),
-                borderRadius: Radii.all(Radii.sm),
-                border: Border.all(color: c.warning.withValues(alpha: 0.34)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.lock_open_rounded, size: 15, color: c.warning),
-                  const SizedBox(width: Gap.sm),
-                  Expanded(
-                    child: Text(
-                      'Connexion HTTP. Le contenu du coffre reste chiffré de '
-                      'bout en bout, mais un observateur du réseau voit à qui '
-                      'vous parlez et quand.',
-                      style: text.bodySmall?.copyWith(color: c.warning),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
 
 /// Changement du mot de passe maître. La clé du coffre est réenveloppée, aucun
 /// élément n'est rechiffré : l'opération est instantanée quel que soit le volume.

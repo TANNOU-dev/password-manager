@@ -1,9 +1,15 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/design/app_theme.dart';
 import '../../core/design/tokens.dart';
+import '../../core/lock/lock_controller.dart';
 import '../../core/utils/password_strength.dart';
+import '../../core/utils/ssh_key.dart';
 import '../../core/utils/totp.dart';
 import '../../data/api/api_client.dart';
 import '../../data/models/cipher.dart';
@@ -70,6 +76,13 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
       key: TextEditingController(),
   };
 
+  // Clé SSH
+  final _privateKeyController = TextEditingController();
+  final _publicKeyController = TextEditingController();
+  String _fingerprint = '';
+  bool _obscurePrivateKey = true;
+  bool _generating = false;
+
   // Champs personnalisés
   final List<_FieldDraft> _fields = [];
 
@@ -129,6 +142,10 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
         _identity['state']!.text = d.state;
         _identity['postalCode']!.text = d.postalCode;
         _identity['country']!.text = d.country;
+      case SshKeyData d:
+        _privateKeyController.text = d.privateKey;
+        _publicKeyController.text = d.publicKey;
+        _fingerprint = d.keyFingerprint;
       case SecureNoteData():
       case null:
         break;
@@ -149,7 +166,7 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
       _nameController, _notesController, _usernameController,
       _passwordController, _totpController, _cardholderController,
       _numberController, _expMonthController, _expYearController,
-      _codeController,
+      _codeController, _privateKeyController, _publicKeyController,
     ]) {
       c.dispose();
     }
@@ -248,6 +265,22 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
 
       case CipherType.secureNote:
         return SecureNoteData(name: name, notes: notes, fields: fields);
+
+      case CipherType.sshKey:
+        final publicKey = _publicKeyController.text.trim();
+        return SshKeyData(
+          name: name,
+          privateKey:
+              SshKeys.normalizePrivateKey(_privateKeyController.text),
+          publicKey: publicKey,
+          // Recalculée à l'enregistrement plutôt que reprise du champ :
+          // si l'utilisateur colle une autre clé publique, l'empreinte
+          // affichée doit suivre, sans quoi elle désignerait l'ancienne.
+          keyFingerprint:
+              SshKeys.fingerprintOfPublicKey(publicKey) ?? _fingerprint,
+          notes: notes,
+          fields: fields,
+        );
     }
   }
 
@@ -355,6 +388,7 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
                 CipherType.card => 'Carte Ecobank',
                 CipherType.identity => 'Identité principale',
                 CipherType.secureNote => 'Codes de récupération',
+                CipherType.sshKey => 'Clé de déploiement',
               },
             ),
             onChanged: (_) => setState(() {}),
@@ -366,6 +400,7 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
             CipherType.card => _cardFields(),
             CipherType.identity => _identityFields(),
             CipherType.secureNote => _noteFields(),
+            CipherType.sshKey => _sshKeyFields(),
           },
 
           const SizedBox(height: Gap.xxl),
@@ -552,14 +587,22 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
           ),
         ),
       ),
-      for (var i = 0; i < _uris.length; i++)
+      // Clé sur l'identité du brouillon, pas sur sa position.
+      //
+      // Sans elle, Flutter apparie les éléments par rang : retirer la ligne i
+      // fait hériter l'élément de rang i du brouillon suivant. Il garde alors
+      // l'état de l'ancienne ligne — sélection, position du curseur, zone de
+      // composition du clavier — sur un texte qui n'est plus le sien.
+      for (final draft in _uris)
         Padding(
+          key: ObjectKey(draft),
           padding: const EdgeInsets.only(bottom: Gap.md),
           child: _UriRow(
-            draft: _uris[i],
+            draft: draft,
             enabled: !_busy,
             onRemove: () => setState(() {
-              _uris.removeAt(i).dispose();
+              _uris.remove(draft);
+              draft.dispose();
             }),
             onChanged: () => setState(() {}),
           ),
@@ -736,6 +779,257 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
     ];
   }
 
+  /// Tire une paire et remplit les trois champs.
+  ///
+  /// Écrase sans demander si les champs sont vides ; sinon on confirme. Une clé
+  /// privée remplacée par mégarde est irrécupérable — et si elle est déjà
+  /// déposée sur un serveur, l'accès l'est aussi.
+  Future<void> _generateKey() async {
+    if (_privateKeyController.text.trim().isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Remplacer la clé ?'),
+          content: const Text(
+            'La clé privée actuelle sera perdue. Si elle est déjà installée '
+            'sur un serveur, vous n’y accéderez plus avec cette entrée.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Remplacer'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    setState(() => _generating = true);
+    try {
+      // Le nom de l'entrée sert de commentaire : c'est lui qu'on relira dans un
+      // authorized_keys pour savoir à quoi la ligne correspond.
+      final comment = _nameController.text.trim();
+      final pair = await SshKeys.generateEd25519(comment: comment);
+      if (!mounted) return;
+      setState(() {
+        _privateKeyController.text = pair.privateKey;
+        _publicKeyController.text = pair.publicKey;
+        _fingerprint = pair.fingerprint;
+        _obscurePrivateKey = true;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Génération impossible : $e');
+    } finally {
+      if (mounted) setState(() => _generating = false);
+    }
+  }
+
+  /// Charge une clé existante depuis un fichier (`id_ed25519`, `.pub`).
+  ///
+  /// Le cas courant : une clé déjà installée sur des serveurs, qu'on veut mettre
+  /// à l'abri sans la remplacer. Un fichier privé suffit — la clé publique et
+  /// l'empreinte en sont dérivées.
+  Future<void> _importKeyFile() async {
+    final lock = context.read<LockController>();
+    setState(() {
+      _generating = true;
+      _error = null;
+    });
+
+    try {
+      // Même précaution que pour l'import de coffre : le sélecteur fait passer
+      // l'app en arrière-plan, ce qui verrouillerait le coffre en cours d'édition.
+      final result = await lock.duringExcursion(
+        () => FilePicker.platform.pickFiles(withData: true),
+      );
+      if (result == null || result.files.isEmpty || !mounted) return;
+
+      final file = result.files.single;
+      final String content;
+      if (file.bytes != null) {
+        content = utf8.decode(file.bytes!, allowMalformed: true);
+      } else if (file.path != null) {
+        content = await File(file.path!).readAsString();
+      } else {
+        setState(() => _error = 'Fichier illisible.');
+        return;
+      }
+
+      final pair = SshKeys.readKeyFile(content);
+      if (!mounted) return;
+      setState(() {
+        // Une clé publique seule ne doit pas effacer une privée déjà saisie :
+        // les deux moitiés peuvent arriver par deux fichiers successifs.
+        if (pair.privateKey.isNotEmpty) _privateKeyController.text = pair.privateKey;
+        _publicKeyController.text = pair.publicKey;
+        _fingerprint = pair.fingerprint;
+        _obscurePrivateKey = true;
+        if (_nameController.text.trim().isEmpty) {
+          final comment = SshKeys.commentOfPublicKey(pair.publicKey);
+          if (comment.isNotEmpty) _nameController.text = comment;
+        }
+      });
+    } on SshKeyException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Lecture impossible : $e');
+    } finally {
+      if (mounted) setState(() => _generating = false);
+    }
+  }
+
+  /// Met l'empreinte à jour pendant la frappe, pour que coller une clé publique
+  /// donne un retour immédiat : une empreinte qui apparaît confirme que la clé
+  /// est bien formée, sans avoir à enregistrer pour le découvrir.
+  void _onPublicKeyChanged(String value) {
+    final computed = SshKeys.fingerprintOfPublicKey(value);
+    if (computed != _fingerprint) setState(() => _fingerprint = computed ?? '');
+  }
+
+  List<Widget> _sshKeyFields() {
+    final c = context.palette;
+    final text = Theme.of(context).textTheme;
+    final hasKey = _privateKeyController.text.trim().isNotEmpty ||
+        _publicKeyController.text.trim().isNotEmpty;
+
+    return [
+      SectionLabel(
+        'Paire de clés',
+        trailing: TextButton.icon(
+          onPressed: _busy || _generating ? null : _generateKey,
+          icon: _generating
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.auto_awesome_rounded, size: 16),
+          label: Text(_generating ? 'Génération…' : 'Générer'),
+          style: TextButton.styleFrom(
+            minimumSize: Size.zero,
+            padding: const EdgeInsets.symmetric(horizontal: Gap.sm),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+      ),
+
+      if (!hasKey) ...[
+        HairlineCard(
+          sunken: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.terminal_rounded, size: 16, color: c.accent),
+                  const SizedBox(width: Gap.sm),
+                  Text('Ed25519', style: text.titleSmall),
+                ],
+              ),
+              const SizedBox(height: Gap.sm),
+              Text(
+                'Générez une paire, importez un fichier de clé existant, ou '
+                'collez-la ci-dessous. Le format est celui d’OpenSSH : la clé '
+                'publique se colle telle quelle dans un authorized_keys.',
+                style: text.bodySmall?.copyWith(color: c.textTertiary),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: Gap.md),
+      ],
+
+      Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton.icon(
+          onPressed: _busy || _generating ? null : _importKeyFile,
+          icon: const Icon(Icons.folder_open_rounded, size: 18),
+          label: const Text('Importer un fichier de clé'),
+        ),
+      ),
+      const SizedBox(height: Gap.lg),
+
+      TextField(
+        controller: _privateKeyController,
+        enabled: !_busy,
+        obscureText: _obscurePrivateKey,
+        autocorrect: false,
+        enableSuggestions: false,
+        maxLines: _obscurePrivateKey ? 1 : 10,
+        minLines: 1,
+        style: SecretText.of(context),
+        decoration: InputDecoration(
+          labelText: 'Clé privée',
+          hintText: '-----BEGIN OPENSSH PRIVATE KEY-----',
+          alignLabelWithHint: true,
+          suffixIcon: IconButton(
+            tooltip: _obscurePrivateKey ? 'Afficher' : 'Masquer',
+            onPressed: () =>
+                setState(() => _obscurePrivateKey = !_obscurePrivateKey),
+            icon: Icon(
+              _obscurePrivateKey
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              size: 20,
+            ),
+          ),
+        ),
+      ),
+
+      const SizedBox(height: Gap.lg),
+      TextField(
+        controller: _publicKeyController,
+        enabled: !_busy,
+        autocorrect: false,
+        enableSuggestions: false,
+        maxLines: 4,
+        minLines: 2,
+        style: SecretText.of(context),
+        decoration: const InputDecoration(
+          labelText: 'Clé publique',
+          hintText: 'ssh-ed25519 AAAA…',
+          alignLabelWithHint: true,
+        ),
+        onChanged: _onPublicKeyChanged,
+      ),
+
+      const SizedBox(height: Gap.md),
+      if (_fingerprint.isNotEmpty)
+        HairlineCard(
+          sunken: true,
+          padding: const EdgeInsets.symmetric(
+            horizontal: Gap.lg,
+            vertical: Gap.sm,
+          ),
+          child: InfoRow(
+            label: 'Empreinte',
+            value: _fingerprint,
+            monospace: true,
+            copyable: true,
+            copyLabel: 'Empreinte',
+          ),
+        )
+      else if (_publicKeyController.text.trim().isNotEmpty)
+        Row(
+          children: [
+            Icon(Icons.info_outline_rounded, size: 14, color: c.textTertiary),
+            const SizedBox(width: Gap.xs),
+            Expanded(
+              child: Text(
+                'Clé publique non reconnue : l’empreinte reste vide.',
+                style: text.bodySmall?.copyWith(color: c.textTertiary),
+              ),
+            ),
+          ],
+        ),
+    ];
+  }
+
   List<Widget> _noteFields() {
     return [
       const SectionLabel('Contenu'),
@@ -771,14 +1065,17 @@ class _ItemEditScreenState extends State<ItemEditScreen> {
             ),
           ),
         ),
-        for (var i = 0; i < _fields.length; i++)
+        // Même raison que pour les adresses : voir le commentaire là-bas.
+        for (final draft in _fields)
           Padding(
+            key: ObjectKey(draft),
             padding: const EdgeInsets.only(bottom: Gap.md),
             child: _FieldRow(
-              draft: _fields[i],
+              draft: draft,
               enabled: !_busy,
               onRemove: () => setState(() {
-                _fields.removeAt(i).dispose();
+                _fields.remove(draft);
+                draft.dispose();
               }),
               onChanged: () => setState(() {}),
             ),

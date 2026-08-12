@@ -289,29 +289,61 @@ Future<String?> _promptName(
   required String title,
   String? initial,
 }) async {
-  final controller = TextEditingController(text: initial);
   final result = await showDialog<String>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
+    builder: (ctx) => _NamePromptDialog(title: title, initial: initial),
+  );
+  return (result == null || result.isEmpty) ? null : result;
+}
+
+/// Le contrôleur appartient à l'état de la boîte, pas à la fonction qui l'ouvre.
+///
+/// `showDialog` rend la main dès `Navigator.pop`, c'est-à-dire au *début* de
+/// l'animation de sortie. Détruire le contrôleur juste après l'attente le
+/// retirait donc sous un `TextField` encore monté pour toute la durée de la
+/// transition : « A TextEditingController was used after being disposed », suivi
+/// d'une cascade d'assertions qui laissait l'arbre incohérent pour le reste de
+/// la session. Ici `dispose` n'arrive qu'au démontage réel de la route.
+class _NamePromptDialog extends StatefulWidget {
+  const _NamePromptDialog({required this.title, this.initial});
+
+  final String title;
+  final String? initial;
+
+  @override
+  State<_NamePromptDialog> createState() => _NamePromptDialogState();
+}
+
+class _NamePromptDialogState extends State<_NamePromptDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
       content: TextField(
-        controller: controller,
+        controller: _controller,
         autofocus: true,
         decoration: const InputDecoration(labelText: 'Nom du dossier'),
-        onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        onSubmitted: (v) => Navigator.pop(context, v.trim()),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(ctx),
+          onPressed: () => Navigator.pop(context),
           child: const Text('Annuler'),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
           child: const Text('Valider'),
         ),
       ],
-    ),
-  );
-  controller.dispose();
-  return (result == null || result.isEmpty) ? null : result;
+    );
+  }
 }

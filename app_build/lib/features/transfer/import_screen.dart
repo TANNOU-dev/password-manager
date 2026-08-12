@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/design/app_theme.dart';
 import '../../core/design/tokens.dart';
+import '../../core/lock/lock_controller.dart';
 import '../../data/api/api_client.dart';
 import '../../data/export/vault_export.dart';
 import '../../data/import/importers.dart';
@@ -45,11 +46,16 @@ class _ImportScreenState extends State<ImportScreen> {
 
     final FilePickerResult? result;
     try {
-      result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: importExtensions,
-        withData: kIsWeb,
-      );
+      // Le sélecteur fait passer l'app en arrière-plan : sans cette enveloppe,
+      // le coffre se verrouillait pendant qu'on choisissait le fichier, et
+      // l'import échouait ensuite sur un coffre sans clé.
+      result = await context.read<LockController>().duringExcursion(
+            () => FilePicker.platform.pickFiles(
+              type: FileType.custom,
+              allowedExtensions: importExtensions,
+              withData: kIsWeb,
+            ),
+          );
     } catch (e) {
       setState(() => _error = 'Impossible d’ouvrir le sélecteur : $e');
       return;
@@ -109,43 +115,10 @@ class _ImportScreenState extends State<ImportScreen> {
   }
 
   Future<String?> _askBackupPassword() async {
-    final controller = TextEditingController();
     final value = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sauvegarde chiffrée'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Ce fichier est protégé par la phrase de passe choisie au moment '
-              'de l’export — pas par votre mot de passe maître.',
-            ),
-            const SizedBox(height: Gap.lg),
-            TextField(
-              controller: controller,
-              obscureText: true,
-              autofocus: true,
-              style: SecretText.of(ctx),
-              decoration: const InputDecoration(labelText: 'Phrase de passe'),
-              onSubmitted: (v) => Navigator.pop(ctx, v),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Déchiffrer'),
-          ),
-        ],
-      ),
+      builder: (ctx) => const _BackupPasswordDialog(),
     );
-    controller.dispose();
     return (value == null || value.isEmpty) ? null : value;
   }
 
@@ -173,6 +146,14 @@ class _ImportScreenState extends State<ImportScreen> {
       });
     } on ApiFailure catch (e) {
       if (mounted) setState(() => _error = e.message);
+    } catch (e, stack) {
+      // Filet de dernier recours. Le coffre verrouillé lève un StateError, pas
+      // une ApiFailure : sans ce bloc, appuyer sur « Importer » ne faisait
+      // strictement rien de visible.
+      debugPrintStack(stackTrace: stack, label: 'importParsed: $e');
+      if (mounted) {
+        setState(() => _error = 'Import impossible : $e');
+      }
     } finally {
       if (mounted) setState(() => _progress = null);
       if (mounted) setState(() => _busy = false);
@@ -194,7 +175,7 @@ class _ImportScreenState extends State<ImportScreen> {
             _SuccessCard(count: _imported!, onDone: () => Navigator.pop(context))
           else ...[
             Text(
-              'PassVault rechiffre chaque entrée avec votre clé avant de '
+              'Coffort rechiffre chaque entrée avec votre clé avant de '
               'l’envoyer. Le fichier source, lui, est en clair : supprimez-le '
               'dès l’import terminé.',
               style: text.bodyMedium,
@@ -284,7 +265,7 @@ class _SupportedFormats extends StatelessWidget {
       ('KeePass / KeePassXC', 'XML ou CSV'),
       ('Chrome, Edge, Firefox, Safari', 'CSV'),
       ('LastPass, 1Password, Dashlane', 'CSV'),
-      ('PassVault', 'sauvegarde chiffrée ou export v1'),
+      ('Coffort', 'sauvegarde chiffrée ou export v1'),
     ];
 
     return HairlineCard(
@@ -352,6 +333,12 @@ class _PreviewCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final byType = parsed.byType;
 
+    // Compté ici plutôt que dans le dépôt : l'aperçu doit annoncer le nombre
+    // réel avant validation, et c'est le même critère qui servira à l'import.
+    final present = context.read<VaultRepository>().existingFingerprints;
+    final alreadyInVault =
+        parsed.items.where((i) => present.contains(i.contentFingerprint)).length;
+
     return HairlineCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,6 +380,35 @@ class _PreviewCard extends StatelessWidget {
           Text('${parsed.count} élément${parsed.count > 1 ? 's' : ''} reconnu'
               '${parsed.count > 1 ? 's' : ''}',
               style: text.titleLarge),
+
+          // Les entrées écartées sont annoncées avant validation : un import qui
+          // retire des lignes sans le dire ferait douter du compte final.
+          if (parsed.duplicatesInFile > 0 || alreadyInVault > 0) ...[
+            const SizedBox(height: Gap.sm),
+            for (final line in [
+              if (parsed.duplicatesInFile > 0)
+                '${parsed.duplicatesInFile} doublon'
+                    '${parsed.duplicatesInFile > 1 ? 's' : ''} dans le fichier',
+              if (alreadyInVault > 0)
+                '$alreadyInVault déjà dans le coffre',
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: Gap.xxs),
+                child: Row(
+                  children: [
+                    Icon(Icons.filter_alt_outlined, size: 14, color: c.accent),
+                    const SizedBox(width: Gap.sm),
+                    Expanded(
+                      child: Text(
+                        '$line — ignoré${line.startsWith('1 ') ? '' : 's'}',
+                        style: text.bodySmall?.copyWith(color: c.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+
           const SizedBox(height: Gap.md),
 
           Wrap(
@@ -408,6 +424,7 @@ class _PreviewCard extends StatelessWidget {
                     CipherType.card => Icons.credit_card_rounded,
                     CipherType.identity => Icons.badge_outlined,
                     CipherType.secureNote => Icons.sticky_note_2_outlined,
+                    CipherType.sshKey => Icons.terminal_rounded,
                   },
                 ),
               if (parsed.folderNames.isNotEmpty)
@@ -574,6 +591,71 @@ class _SuccessCard extends StatelessWidget {
         ),
         const SizedBox(height: Gap.xxl),
         FilledButton(onPressed: onDone, child: const Text('Retour au coffre')),
+      ],
+    );
+  }
+}
+
+/// Le contrôleur appartient à l'état de la boîte, pas à la fonction qui l'ouvre.
+///
+/// `showDialog` rend la main dès `Navigator.pop`, c'est-à-dire au *début* de
+/// l'animation de sortie. Détruire le contrôleur juste après l'attente le
+/// retirait donc sous un `TextField` encore monté pour toute la durée de la
+/// transition : « A TextEditingController was used after being disposed », suivi
+/// d'une cascade d'assertions qui laissait l'arbre incohérent pour le reste de
+/// la session. Ici `dispose` n'arrive qu'au démontage réel de la route.
+///
+/// Le risque est plus sérieux ici qu'ailleurs : ce champ contient la phrase de
+/// passe d'une sauvegarde, et un contrôleur détruit à contretemps laisse son
+/// contenu dans un objet qu'on ne maîtrise plus.
+class _BackupPasswordDialog extends StatefulWidget {
+  const _BackupPasswordDialog();
+
+  @override
+  State<_BackupPasswordDialog> createState() => _BackupPasswordDialogState();
+}
+
+class _BackupPasswordDialogState extends State<_BackupPasswordDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Sauvegarde chiffrée'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Ce fichier est protégé par la phrase de passe choisie au moment '
+            'de l’export — pas par votre mot de passe maître.',
+          ),
+          const SizedBox(height: Gap.lg),
+          TextField(
+            controller: _controller,
+            obscureText: true,
+            autofocus: true,
+            style: SecretText.of(context),
+            decoration: const InputDecoration(labelText: 'Phrase de passe'),
+            onSubmitted: (v) => Navigator.pop(context, v),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text),
+          child: const Text('Déchiffrer'),
+        ),
       ],
     );
   }

@@ -13,17 +13,49 @@ const String kDefaultApiUrl = String.fromEnvironment(
   defaultValue: 'http://localhost:3000',
 );
 
-/// Vrai si le trafic quitte la machine sans TLS.
+/// Vrai si le trafic quitte la machine sans chiffrement.
 ///
-/// Une boucle locale en HTTP ne pose pas de problème — le trafic ne sort pas de
-/// l'appareil — alors qu'un HTTP vers une IP distante expose les métadonnées :
-/// à qui on parle, quand, et à quelle fréquence. Seul le second cas mérite un
-/// avertissement, sinon on crie au loup en développement.
+/// Deux cas où le HTTP nu ne pose pourtant aucun problème :
+///
+/// * **la boucle locale** — le trafic ne quitte pas l'appareil ;
+/// * **un réseau maillé chiffré** — l'adresse appartient à 100.64.0.0/10, la
+///   plage que Tailscale attribue à ses pairs. Le transport y est du WireGuard,
+///   donc chiffré et authentifié de bout en bout, un cran au-dessus de TLS
+///   puisqu'il n'y a pas d'autorité de certification à qui faire confiance.
+///   L'`http://` de l'URL décrit alors le protocole applicatif à l'intérieur du
+///   tunnel, pas ce qui circule sur le câble.
+///
+/// Avertir dans ces deux cas serait un faux positif — et un avertissement qu'on
+/// apprend à ignorer ne protège plus de rien le jour où il est fondé.
+///
+/// Un réseau local ordinaire (192.168.x, 10.x) n'entre pas dans la liste :
+/// là, le HTTP est bel et bien en clair sur le lien.
 bool isInsecureServerUrl(String url) {
   if (!url.startsWith('http://')) return false;
   final host = Uri.tryParse(url)?.host.toLowerCase() ?? '';
   const loopback = {'localhost', '127.0.0.1', '::1', '0.0.0.0'};
-  return !loopback.contains(host);
+  if (loopback.contains(host)) return false;
+  return !isMeshNetworkHost(host);
+}
+
+/// Vrai si l'hôte est une adresse de la plage 100.64.0.0/10.
+///
+/// La plage est officiellement celle du NAT de grande échelle (RFC 6598), mais
+/// une application cliente ne parle pas à un équipement d'opérateur : dans ce
+/// contexte, une adresse de cette plage est un pair Tailscale.
+bool isMeshNetworkHost(String host) {
+  final octets = host.split('.');
+  if (octets.length != 4) return false;
+
+  final values = <int>[];
+  for (final octet in octets) {
+    final value = int.tryParse(octet);
+    if (value == null || value < 0 || value > 255) return false;
+    values.add(value);
+  }
+
+  // 100.64.0.0/10 : le premier octet vaut 100 et le second est dans 64–127.
+  return values[0] == 100 && values[1] >= 64 && values[1] <= 127;
 }
 
 sealed class ApiFailure implements Exception {

@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "design-gallery",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": [
+        "run",
+        "-t",
+        "lib/dev/design_gallery.dart",
+        "-d",
+        "web-server",
+        "--web-port",
+        "8123",
+        "--web-hostname",
+        "127.0.0.1"
+      ],
+      "port": 8123
+    }
+  ]
+}
