@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'core/design/app_theme.dart';
@@ -110,6 +111,25 @@ class _CoffortAppState extends State<CoffortApp> {
           title: 'Coffort',
           navigatorKey: _navigatorKey,
           debugShowCheckedModeBanner: false,
+
+          // Français imposé, pas seulement proposé.
+          //
+          // Toute l'interface écrite ici l'est en français ; laisser les
+          // composants de Flutter suivre la langue du téléphone donnerait un
+          // écran mi-français mi-anglais — « Couper » à côté de « Paste ».
+          //
+          // Ces trois délégués apportent les traductions des éléments que
+          // Flutter fournit lui-même : menu de sélection de texte, sélecteurs
+          // de date, libellés lus par les lecteurs d'écran. Sans eux, ils
+          // restent en anglais même sur un appareil configuré en français,
+          // parce que le moteur n'embarque que l'anglais par défaut.
+          locale: const Locale('fr'),
+          supportedLocales: const [Locale('fr')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: settings.themeMode,
